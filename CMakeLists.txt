@@ -27,7 +27,56 @@ add_subdirectory(external/glfw)
 
 message(STATUS "GLFW added successfully")
 
-# Source files
+# Add Google Test
+add_subdirectory(external/googletest)
+
+message(STATUS "Google Test added successfully")
+
+# Enable testing
+enable_testing()
+
+# Find shader compiler
+find_program(GLSL_VALIDATOR glslc HINTS 
+    $ENV{VULKAN_SDK}/Bin
+    $ENV{VULKAN_SDK}/bin
+)
+
+if(NOT GLSL_VALIDATOR)
+    message(FATAL_ERROR "glslc not found! Make sure Vulkan SDK is installed.")
+endif()
+
+message(STATUS "glslc found: ${GLSL_VALIDATOR}")
+
+# Shader compilation
+set(SHADER_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
+set(SHADER_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+
+file(MAKE_DIRECTORY ${SHADER_BINARY_DIR})
+
+# Compile vertex shader
+add_custom_command(
+    OUTPUT ${SHADER_BINARY_DIR}/triangle.vert.spv
+    COMMAND ${GLSL_VALIDATOR} ${SHADER_SOURCE_DIR}/triangle.vert -o ${SHADER_BINARY_DIR}/triangle.vert.spv
+    DEPENDS ${SHADER_SOURCE_DIR}/triangle.vert
+    COMMENT "Compiling vertex shader"
+)
+
+# Compile fragment shader
+add_custom_command(
+    OUTPUT ${SHADER_BINARY_DIR}/triangle.frag.spv
+    COMMAND ${GLSL_VALIDATOR} ${SHADER_SOURCE_DIR}/triangle.frag -o ${SHADER_BINARY_DIR}/triangle.frag.spv
+    DEPENDS ${SHADER_SOURCE_DIR}/triangle.frag
+    COMMENT "Compiling fragment shader"
+)
+
+# Create shader target
+add_custom_target(Shaders ALL
+    DEPENDS 
+        ${SHADER_BINARY_DIR}/triangle.vert.spv
+        ${SHADER_BINARY_DIR}/triangle.frag.spv
+)
+
+# Source files organized by component
 set(INTERFACE_HEADERS
     src/interfaces/IWindow.h
     src/interfaces/IGraphicsContext.h
@@ -69,45 +118,7 @@ target_link_libraries(HybridRenderer PRIVATE
     glfw
 )
 
-# Find glslc (shader compiler from Vulkan SDK)
-find_program(GLSL_VALIDATOR glslc HINTS 
-    $ENV{VULKAN_SDK}/Bin
-    $ENV{VULKAN_SDK}/bin
-)
-
-if(NOT GLSL_VALIDATOR)
-    message(FATAL_ERROR "glslc not found!")
-endif()
-
-# Compile shaders
-set(SHADER_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
-set(SHADER_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/shaders)
-
-file(MAKE_DIRECTORY ${SHADER_BINARY_DIR})
-
-# Vertex shader
-add_custom_command(
-    OUTPUT ${SHADER_BINARY_DIR}/triangle.vert.spv
-    COMMAND ${GLSL_VALIDATOR} ${SHADER_SOURCE_DIR}/triangle.vert -o ${SHADER_BINARY_DIR}/triangle.vert.spv
-    DEPENDS ${SHADER_SOURCE_DIR}/triangle.vert
-    COMMENT "Compiling vertex shader"
-)
-
-# Fragment shader
-add_custom_command(
-    OUTPUT ${SHADER_BINARY_DIR}/triangle.frag.spv
-    COMMAND ${GLSL_VALIDATOR} ${SHADER_SOURCE_DIR}/triangle.frag -o ${SHADER_BINARY_DIR}/triangle.frag.spv
-    DEPENDS ${SHADER_SOURCE_DIR}/triangle.frag
-    COMMENT "Compiling fragment shader"
-)
-
-# Add shaders as dependency
-add_custom_target(Shaders ALL
-    DEPENDS 
-        ${SHADER_BINARY_DIR}/triangle.vert.spv
-        ${SHADER_BINARY_DIR}/triangle.frag.spv
-)
-
+# Add shader dependency
 add_dependencies(HybridRenderer Shaders)
 
 # Windows-specific settings
@@ -118,3 +129,41 @@ if(WIN32)
         WIN32_LEAN_AND_MEAN
     )
 endif()
+
+# ==================== TEST EXECUTABLE ====================
+
+add_executable(HybridRenderer_tests
+    # Test files
+    tests/WindowTest.cpp
+    tests/VulkanContextTest.cpp
+    
+    # Source files (implementations needed for linking)
+    ${VULKAN_SOURCES}
+    ${PLATFORM_SOURCES}
+    ${RENDERER_SOURCES}
+)
+
+target_include_directories(HybridRenderer_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${Vulkan_INCLUDE_DIRS}
+)
+
+target_link_libraries(HybridRenderer_tests PRIVATE
+    gtest
+    gtest_main
+    Vulkan::Vulkan
+    glfw
+)
+
+# Windows-specific settings for tests
+if(WIN32)
+    target_compile_definitions(HybridRenderer_tests PRIVATE
+        VK_USE_PLATFORM_WIN32_KHR
+        NOMINMAX
+        WIN32_LEAN_AND_MEAN
+    )
+endif()
+
+# Register tests with CTest
+include(GoogleTest)
+gtest_discover_tests(HybridRenderer_tests)

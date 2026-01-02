@@ -13,6 +13,7 @@ VulkanContext::VulkanContext(IWindow* window)
     : window(window)
     , instance(VK_NULL_HANDLE)
     , surface(VK_NULL_HANDLE)
+	, debugMessenger(VK_NULL_HANDLE)
     , physicalDevice(VK_NULL_HANDLE)
     , device(VK_NULL_HANDLE)
     , graphicsQueue(VK_NULL_HANDLE)
@@ -38,6 +39,7 @@ void VulkanContext::initialize() {
     std::cout << "Initializing Vulkan..." << std::endl;
 
     createInstance();
+	setupDebugMessenger();
     createSurface();
     pickPhysicalDevice();
     createLogicalDevice();
@@ -52,13 +54,126 @@ void VulkanContext::initialize() {
 
     std::cout << "Vulkan initialized successfully!" << std::endl;
 }
+//=================== Debug ========================
+bool VulkanContext::checkValidationLayerSupport() {
+    uint32_t layerCount;
+    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+    
+    std::vector<VkLayerProperties> availableLayers(layerCount);
+    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+    
+    for (const char* layerName : validationLayers) {
+        bool layerFound = false;
+        
+        for (const auto& layerProperties : availableLayers) {
+            if (strcmp(layerName, layerProperties.layerName) == 0) {
+                layerFound = true;
+                break;
+            }
+        }
+        
+        if (!layerFound) {
+            return false;
+        }
+    }
+    
+    return true;
+}
 
+std::vector<const char*> VulkanContext::getRequiredExtensions() {
+    uint32_t glfwExtensionCount = 0;
+    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    
+    std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+    
+    if (enableValidationLayers) {
+        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    }
+    
+    return extensions;
+}
 
+VKAPI_ATTR VkBool32 VKAPI_CALL VulkanContext::debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+    void* pUserData) 
+{
+    // Color codes for different severity levels
+    const char* color = "";
+    const char* reset = "\033[0m";
+    
+    if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+        color = "\033[91m";  // Red
+    } else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+        color = "\033[93m";  // Yellow
+    } else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
+        color = "\033[96m";  // Cyan
+    } else {
+        color = "\033[90m";  // Gray
+    }
+    
+    std::cerr << color << "[VALIDATION] " << pCallbackData->pMessage << reset << std::endl;
+    
+    // Return VK_FALSE to continue execution
+    return VK_FALSE;
+}
 
+void VulkanContext::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
+    createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    createInfo.messageSeverity = 
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    createInfo.messageType = 
+        VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    createInfo.pfnUserCallback = debugCallback;
+}
 
+void VulkanContext::setupDebugMessenger() {
+    if (!enableValidationLayers) {
+        return;
+    }
+    
+    std::cout << "  Setting up debug messenger..." << std::endl;
+    
+    VkDebugUtilsMessengerCreateInfoEXT createInfo;
+    populateDebugMessengerCreateInfo(createInfo);
+    
+    // Try to load the function
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+        instance, "vkCreateDebugUtilsMessengerEXT");
+    
+    if (func == nullptr) {
+        std::cout << "  ⚠ Debug messenger not available (extension not loaded)" << std::endl;
+        std::cout << "  Validation will still work via standard output" << std::endl;
+        debugMessenger = VK_NULL_HANDLE;
+        return;
+    }
+    
+    VkResult result = func(instance, &createInfo, nullptr, &debugMessenger);
+    
+    if (result != VK_SUCCESS) {
+        std::cout << "  ⚠ Failed to create debug messenger (code: " << result << ")" << std::endl;
+        std::cout << "  Validation will still work via standard output" << std::endl;
+        debugMessenger = VK_NULL_HANDLE;
+        return;
+    }
+    
+    std::cout << "  ✓ Debug messenger created" << std::endl;
+}
 // ==================== Instance Creation ====================
 
 void VulkanContext::createInstance() {
+	// Check validation layer support
+    if (enableValidationLayers && !checkValidationLayerSupport()) {
+        throw std::runtime_error("Validation layers requested, but not available!");
+    }	
+	
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName = "Hybrid Renderer";
@@ -70,6 +185,31 @@ void VulkanContext::createInstance() {
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
+
+// Get required extensions
+    auto extensions = getRequiredExtensions();
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+    createInfo.ppEnabledExtensionNames = extensions.data();
+    
+    // Enable validation layers
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+    if (enableValidationLayers) {
+        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        createInfo.ppEnabledLayerNames = validationLayers.data();
+        
+        // Enable validation during instance creation/destruction
+        populateDebugMessengerCreateInfo(debugCreateInfo);
+        createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+        
+        std::cout << "  Validation layers enabled:" << std::endl;
+        for (const auto& layer : validationLayers) {
+            std::cout << "    - " << layer << std::endl;
+        }
+    } else {
+        createInfo.enabledLayerCount = 0;
+        createInfo.pNext = nullptr;
+        std::cout << "  Validation layers disabled (Release build)" << std::endl;
+    }
 
     // Get GLFW extensions
     uint32_t glfwExtensionCount = 0;
@@ -748,6 +888,17 @@ void VulkanContext::cleanup() {
 
     vkDestroyDevice(device, nullptr);
     device = VK_NULL_HANDLE;  // ← Mark as cleaned
+	
+	// Cleanup debug messenger if it was created
+    if (enableValidationLayers && debugMessenger != VK_NULL_HANDLE) {
+        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+            instance, "vkDestroyDebugUtilsMessengerEXT");
+        
+        if (func != nullptr) {
+            func(instance, debugMessenger, nullptr);
+            std::cout << "  Debug messenger destroyed" << std::endl;
+        }
+    }
 
     if (surface != VK_NULL_HANDLE) {
         vkDestroySurfaceKHR(instance, surface, nullptr);

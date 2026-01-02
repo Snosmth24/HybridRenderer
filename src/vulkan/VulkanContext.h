@@ -38,6 +38,7 @@ private:
 
     // Vulkan objects
     VkInstance instance;
+	VkDebugUtilsMessengerEXT debugMessenger;
     VkSurfaceKHR surface;
     VkPhysicalDevice physicalDevice;
     VkDevice device;
@@ -62,6 +63,29 @@ private:
     uint32_t currentFrame;
     uint32_t currentImageIndex;
     const int MAX_FRAMES_IN_FLIGHT = 2;
+	
+	 // Validation layers
+    const std::vector<const char*> validationLayers = {
+        "VK_LAYER_KHRONOS_validation"  // ← ADD THIS
+    };
+    
+    #ifdef NDEBUG
+        const bool enableValidationLayers = false;
+    #else
+        const bool enableValidationLayers = true;
+    #endif
+	
+	 void setupDebugMessenger();                           
+    void populateDebugMessengerCreateInfo(              
+        VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+    bool checkValidationLayerSupport();                   
+    std::vector<const char*> getRequiredExtensions();     
+    
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback( 
+        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+        VkDebugUtilsMessageTypeFlagsEXT messageType,
+        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+        void* pUserData);
 
     
 
