@@ -1,4 +1,5 @@
 #include "GLFWWindow.h"
+#include "../utils/Logger.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -20,7 +21,7 @@ GLFWWindow::GLFWWindow(int width, int height, const char* title)
         throw std::runtime_error("Failed to initialize GLFW!");
     }
 
-    std::cout << "GLFW initialized successfully" << std::endl;
+    Logger::verbose("GLFW initialized");
 
     // Tell GLFW not to create an OpenGL context
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -35,18 +36,18 @@ GLFWWindow::GLFWWindow(int width, int height, const char* title)
 
     glfwSetKeyCallback(window, keyCallback);
 
-    std::cout << "Window created: " << width << "x" << height << " - " << title << std::endl;
+    Logger::verbose("Window created");
 
 }
 
 GLFWWindow::~GLFWWindow() {
     if (window) {
         glfwDestroyWindow(window);
-        std::cout << "Window destroyed" << std::endl;
+        Logger::verbose("Window destroyed");
     }
 
     glfwTerminate();
-    std::cout << "GLFW terminated" << std::endl;
+    Logger::verbose("GLFW terminated");
 }
 
 bool GLFWWindow::shouldClose() const {

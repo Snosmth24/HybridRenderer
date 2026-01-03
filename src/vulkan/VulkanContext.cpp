@@ -1,13 +1,66 @@
 ﻿#include "VulkanContext.h"
+#include "utils/Logger.h"
+#include "../utils/Logger.h"
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
 #include <set>
 #include <algorithm>
 #include <limits>
+#include <cstring>
+
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+
+VKAPI_ATTR VkBool32 VKAPI_CALL VulkanContext::debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+    void* pUserData) 
+{
+    // Completely silent during tests
+    if (Logger::getLevel() == LogLevel::Silent) {
+        return VK_FALSE;
+    }
+    
+    // Only show errors in minimal mode
+    if (Logger::getLevel() == LogLevel::Minimal) {
+        if (messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+            return VK_FALSE;
+        }
+    }
+    
+    // Show warnings and errors in normal mode
+    if (Logger::getLevel() == LogLevel::Normal) {
+        if (messageSeverity < VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+            return VK_FALSE;
+        }
+    }
+    
+    const char* color = "";
+    const char* reset = "\033[0m";
+    const char* severityStr = "";
+    
+    if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+        color = "\033[91m";  // Red
+        severityStr = "ERROR";
+    } else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+        color = "\033[93m";  // Yellow
+        severityStr = "WARNING";
+    } else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
+        color = "\033[96m";  // Cyan
+        severityStr = "INFO";
+    } else {
+        color = "\033[90m";  // Gray
+        severityStr = "VERBOSE";
+    }
+    
+    std::cerr << color << "[VALIDATION " << severityStr << "] " 
+              << pCallbackData->pMessage << reset << std::endl;
+    
+    return VK_FALSE;
+}
 
 VulkanContext::VulkanContext(IWindow* window)
     : window(window)
@@ -36,7 +89,7 @@ VulkanContext::~VulkanContext() {
 }
 
 void VulkanContext::initialize() {
-    std::cout << "Initializing Vulkan..." << std::endl;
+    Logger::verbose("Initializing Vulkan...");
 
     createInstance();
 	setupDebugMessenger();
@@ -52,7 +105,7 @@ void VulkanContext::initialize() {
     createCommandBuffers();
     createSyncObjects();
 
-    std::cout << "Vulkan initialized successfully!" << std::endl;
+    Logger::info("Vulkan initialized successfully");
 }
 //=================== Debug ========================
 bool VulkanContext::checkValidationLayerSupport() {
@@ -91,32 +144,6 @@ std::vector<const char*> VulkanContext::getRequiredExtensions() {
     }
     
     return extensions;
-}
-
-VKAPI_ATTR VkBool32 VKAPI_CALL VulkanContext::debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-    void* pUserData) 
-{
-    // Color codes for different severity levels
-    const char* color = "";
-    const char* reset = "\033[0m";
-    
-    if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-        color = "\033[91m";  // Red
-    } else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-        color = "\033[93m";  // Yellow
-    } else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
-        color = "\033[96m";  // Cyan
-    } else {
-        color = "\033[90m";  // Gray
-    }
-    
-    std::cerr << color << "[VALIDATION] " << pCallbackData->pMessage << reset << std::endl;
-    
-    // Return VK_FALSE to continue execution
-    return VK_FALSE;
 }
 
 void VulkanContext::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
@@ -166,14 +193,14 @@ void VulkanContext::setupDebugMessenger() {
     
     std::cout << "  ✓ Debug messenger created" << std::endl;
 }
+
 // ==================== Instance Creation ====================
 
 void VulkanContext::createInstance() {
-	// Check validation layer support
-    if (enableValidationLayers && !checkValidationLayerSupport()) {
+	if (enableValidationLayers && !checkValidationLayerSupport()) {
         throw std::runtime_error("Validation layers requested, but not available!");
-    }	
-	
+    }
+    
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName = "Hybrid Renderer";
@@ -181,53 +208,34 @@ void VulkanContext::createInstance() {
     appInfo.pEngineName = "No Engine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.apiVersion = VK_API_VERSION_1_3;
-
+    
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
-
-// Get required extensions
+    
     auto extensions = getRequiredExtensions();
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
     
-    // Enable validation layers
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
     if (enableValidationLayers) {
         createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();
         
-        // Enable validation during instance creation/destruction
         populateDebugMessengerCreateInfo(debugCreateInfo);
         createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
         
-        std::cout << "  Validation layers enabled:" << std::endl;
-        for (const auto& layer : validationLayers) {
-            std::cout << "    - " << layer << std::endl;
-        }
+        Logger::verbose("Validation layers enabled");
     } else {
         createInfo.enabledLayerCount = 0;
         createInfo.pNext = nullptr;
-        std::cout << "  Validation layers disabled (Release build)" << std::endl;
     }
-
-    // Get GLFW extensions
-    uint32_t glfwExtensionCount = 0;
-    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-    if (!glfwExtensions) {
-        throw std::runtime_error("Failed to get GLFW required extensions!");
-    }
-
-    createInfo.enabledExtensionCount = glfwExtensionCount;
-    createInfo.ppEnabledExtensionNames = glfwExtensions;
-    createInfo.enabledLayerCount = 0;
-
+    
     if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create Vulkan instance!");
     }
-
-    std::cout << "  Instance created" << std::endl;
+    
+    Logger::verbose("Vulkan instance created");
 }
 
 // ==================== Surface Creation ====================
@@ -850,7 +858,7 @@ void VulkanContext::cleanup() {
         return;
     }
 
-    std::cout << "Cleaning up Vulkan..." << std::endl;
+    Logger::verbose("Cleaning up Vulkan...");
 
     // CRITICAL: Wait for GPU before destroying anything
     vkDeviceWaitIdle(device);  // ← THIS LINE MUST BE FIRST
@@ -910,7 +918,7 @@ void VulkanContext::cleanup() {
         instance = VK_NULL_HANDLE;
     }
 
-    std::cout << "Vulkan cleaned up" << std::endl;
+    Logger::verbose("Vulkan cleaned up");
 }
 
 // ==================== PipeLine ===================

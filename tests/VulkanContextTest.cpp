@@ -1,17 +1,23 @@
 #include <gtest/gtest.h>
 #include "../src/platform/GLFWWindow.h"
 #include "../src/vulkan/VulkanContext.h"
+#include "../src/utils/Logger.h"
 
 class VulkanContextTest : public ::testing::Test {
 protected:
     void SetUp() override {
+		// Silence verbose output during tests
+        Logger::setLevel(LogLevel::Silent);
         window = new GLFWWindow(800, 600, "Test");
         context = new VulkanContext(window);
     }
     
     void TearDown() override {
+		
         delete context;  // Destructor calls cleanup()
         delete window;
+		// Restore normal logging
+        Logger::setLevel(LogLevel::Normal);
     }
     
     GLFWWindow* window;

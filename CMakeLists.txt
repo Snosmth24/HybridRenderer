@@ -96,6 +96,41 @@ set(PLATFORM_SOURCES
     src/platform/GLFWWindow.h
     src/platform/GLFWWindow.cpp
 )
+# ==================== UNIT TESTS (Headless - No GPU) ====================
+
+add_executable(HybridRenderer_unit_tests
+    # Test main
+    tests/main_test.cpp
+    
+    # Unit tests (headless)
+    tests/unit/WindowUnitTest.cpp
+    tests/unit/RendererUnitTest.cpp
+    
+    # Mocks (no implementation needed)
+    tests/mocks/MockWindow.h
+    tests/mocks/MockGraphicsContext.h
+    
+    # Only include renderer source (no Vulkan/GLFW)
+    ${RENDERER_SOURCES}
+)
+
+target_include_directories(HybridRenderer_unit_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_link_libraries(HybridRenderer_unit_tests PRIVATE
+    gtest
+    gtest_main
+)
+
+# Register unit tests
+include(GoogleTest)
+gtest_discover_tests(HybridRenderer_unit_tests)
+
+
+
+
+
 
 # Main executable
 add_executable(HybridRenderer
@@ -129,15 +164,54 @@ if(WIN32)
         WIN32_LEAN_AND_MEAN
     )
 endif()
+# ==================== INTEGRATION TESTS (Require GPU) ====================
 
-# ==================== TEST EXECUTABLE ====================
+add_executable(HybridRenderer_integration_tests
+    # Test main
+    tests/main_test.cpp
+    
+    # Integration tests (need GPU)
+    tests/WindowTest.cpp
+    tests/VulkanContextTest.cpp
+    
+    # Real implementations
+    ${VULKAN_SOURCES}
+    ${PLATFORM_SOURCES}
+    ${RENDERER_SOURCES}
+)
+
+target_include_directories(HybridRenderer_integration_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${Vulkan_INCLUDE_DIRS}
+)
+
+target_link_libraries(HybridRenderer_integration_tests PRIVATE
+    gtest
+    gtest_main
+    Vulkan::Vulkan
+    glfw
+)
+
+if(WIN32)
+    target_compile_definitions(HybridRenderer_integration_tests PRIVATE
+        VK_USE_PLATFORM_WIN32_KHR
+        NOMINMAX
+        WIN32_LEAN_AND_MEAN
+    )
+endif()
+
+# Register integration tests
+gtest_discover_tests(HybridRenderer_integration_tests)
 
 add_executable(HybridRenderer_tests
+    # Test main
+    tests/main_test.cpp  # ← ADD THIS
+    
     # Test files
     tests/WindowTest.cpp
     tests/VulkanContextTest.cpp
     
-    # Source files (implementations needed for linking)
+    # Source files
     ${VULKAN_SOURCES}
     ${PLATFORM_SOURCES}
     ${RENDERER_SOURCES}
@@ -150,7 +224,7 @@ target_include_directories(HybridRenderer_tests PRIVATE
 
 target_link_libraries(HybridRenderer_tests PRIVATE
     gtest
-    gtest_main
+    # gtest_main  # ← REMOVE THIS (we have our own main now)
     Vulkan::Vulkan
     glfw
 )

@@ -12,10 +12,11 @@
 #include "platform/GLFWWindow.h"
 #include "vulkan/VulkanContext.h"
 #include "renderer/Renderer.h"
+#include "utils/Logger.h"
 
 int main() {
     try {
-        std::cout << "=== Hybrid Renderer Starting ===" << std::endl;
+		std::cout << "=== Hybrid Renderer Starting ===" << std::endl;
         std::cout << std::endl;
 
         // Create window

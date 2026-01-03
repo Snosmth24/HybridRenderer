@@ -1,5 +1,20 @@
 #include <gtest/gtest.h>
 #include "../src/platform/GLFWWindow.h"
+#include "../src/utils/Logger.h"
+
+// Test fixture with setup/teardown
+class WindowTestFixture : public ::testing::Test {
+protected:
+    void SetUp() override {
+        // Silence output during tests
+        Logger::setLevel(LogLevel::Silent);
+    }
+    
+    void TearDown() override {
+        // Restore normal logging
+        Logger::setLevel(LogLevel::Normal);
+    }
+};
 
 TEST(WindowTest, CreatesSuccessfully) {
     // Test that window can be created without crashing
