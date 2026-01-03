@@ -101,14 +101,17 @@ set(PLATFORM_SOURCES
 add_executable(HybridRenderer_unit_tests
     # Test main
     tests/main_test.cpp
-    
-    # Unit tests (headless)
-    tests/unit/WindowUnitTest.cpp
-    tests/unit/RendererUnitTest.cpp
-    
-    # Mocks (no implementation needed)
+	
+	# Unit tests
+    tests/unit/MockObjectsTest.cpp
+	
+	# Mocks (header-only, but list for IDE)
     tests/mocks/MockWindow.h
     tests/mocks/MockGraphicsContext.h
+    tests/mocks/TestUtils.h
+    
+    
+  
     
     # Only include renderer source (no Vulkan/GLFW)
     ${RENDERER_SOURCES}
@@ -126,6 +129,8 @@ target_link_libraries(HybridRenderer_unit_tests PRIVATE
 # Register unit tests
 include(GoogleTest)
 gtest_discover_tests(HybridRenderer_unit_tests)
+
+message(STATUS "Unit tests configured (headless, no GPU required)")
 
 
 
