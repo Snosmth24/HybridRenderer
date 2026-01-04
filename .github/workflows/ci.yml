@@ -1,6 +1,11 @@
-name: CI - Unit Tests Only
+name: CI - Unit Tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   unit-tests-windows:
@@ -10,6 +15,7 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+      timeout-minutes: 5
     
     - name: Verify dependencies
       run: |
@@ -24,21 +30,20 @@ jobs:
         Write-Host "✓ Dependencies verified"
       shell: pwsh
     
-    - name: Configure (Unit Tests Only)
-      run: |
-        # Create a minimal CMakeLists.txt that only builds unit tests
-        cmake -B build -DCMAKE_BUILD_TYPE=Debug
-      continue-on-error: true
+    - name: Check CMake version
+      run: cmake --version
     
-    - name: Build Unit Tests Only
-      run: |
-        # Build ONLY the unit test target
-        cmake --build build --config Debug --target HybridRenderer_unit_tests
+    - name: Configure
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Debug
+      timeout-minutes: 5
+    
+    - name: Build
+      run: cmake --build build --config Debug --target HybridRenderer_unit_tests
+      timeout-minutes: 10
     
     - name: Run Tests
-      run: |
-        cd build\bin\Debug
-        .\HybridRenderer_unit_tests.exe
+      run: .\build\bin\Debug\HybridRenderer_unit_tests.exe
+      timeout-minutes: 2
 
   unit-tests-linux:
     name: Unit Tests (Linux)
@@ -47,11 +52,13 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+      timeout-minutes: 5
     
-    - name: Install X11 dependencies
+    - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y libgl1-mesa-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
+      timeout-minutes: 5
     
     - name: Verify dependencies
       run: |
@@ -65,12 +72,41 @@ jobs:
         fi
         echo "✓ Dependencies verified"
     
-    - name: Configure (Unit Tests Only)
-      run: cmake -B build -DCMAKE_BUILD_TYPE=Debug
-      continue-on-error: true
+    - name: Check CMake version
+      run: cmake --version
     
-    - name: Build Unit Tests Only
+    - name: Configure
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Debug
+      timeout-minutes: 5
+    
+    - name: Build
       run: cmake --build build --config Debug --target HybridRenderer_unit_tests
+      timeout-minutes: 10
     
     - name: Run Tests
       run: ./build/bin/Debug/HybridRenderer_unit_tests
+      timeout-minutes: 2
+
+  status:
+    name: Status
+    runs-on: ubuntu-latest
+    needs: [unit-tests-windows, unit-tests-linux]
+    if: always()
+    
+    steps:
+    - name: Report
+      run: |
+        echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ needs.unit-tests-windows.result }}" == "success" ]; then
+          echo "✅ Windows Tests: PASSED" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Windows Tests: FAILED" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "${{ needs.unit-tests-linux.result }}" == "success" ]; then
+          echo "✅ Linux Tests: PASSED" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Linux Tests: FAILED" >> $GITHUB_STEP_SUMMARY
+        fi

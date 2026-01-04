@@ -8,14 +8,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Output directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-# Find Vulkan
-find_package(Vulkan REQUIRED)
 
-if(NOT Vulkan_FOUND)
-    message(FATAL_ERROR "Vulkan not found. Install Vulkan SDK from https://vulkan.lunarg.com/")
+# Find Vulkan (optional for CI - only needed for main app and integration tests)
+find_package(Vulkan)
+
+if(Vulkan_FOUND)
+    message(STATUS "✓ Vulkan SDK found: ${Vulkan_VERSION}")
+    set(BUILD_VULKAN_TARGETS ON)
+else()
+    message(WARNING "Vulkan SDK not found - building unit tests only")
+    set(BUILD_VULKAN_TARGETS OFF)
 endif()
-
-message(STATUS "Vulkan found: ${Vulkan_VERSION}")
 
 # Add GLFW
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
@@ -135,19 +138,43 @@ message(STATUS "Unit tests configured (headless, no GPU required)")
 
 # ==================== INTEGRATION TESTS (GPU Required) ====================
 
-add_executable(HybridRenderer_integration_tests
-    # Test main
-    tests/main_test.cpp
+# Integration tests (require Vulkan)
+if(BUILD_VULKAN_TARGETS)
+    add_executable(HybridRenderer_integration_tests
+        tests/main_test.cpp
+        tests/integration/WindowIntegrationTest.cpp
+        tests/integration/VulkanContextIntegrationTest.cpp
+        ${VULKAN_SOURCES}
+        ${PLATFORM_SOURCES}
+        ${RENDERER_SOURCES}
+    )
+
+    target_include_directories(HybridRenderer_integration_tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${Vulkan_INCLUDE_DIRS}
+    )
+
+    target_link_libraries(HybridRenderer_integration_tests PRIVATE
+        gtest
+        gtest_main
+        Vulkan::Vulkan
+        glfw
+    )
+
+    if(WIN32)
+        target_compile_definitions(HybridRenderer_integration_tests PRIVATE
+            VK_USE_PLATFORM_WIN32_KHR
+            NOMINMAX
+            WIN32_LEAN_AND_MEAN
+        )
+    endif()
+
+    gtest_discover_tests(HybridRenderer_integration_tests)
     
-    # Integration tests (slow, need GPU)
-    tests/integration/WindowIntegrationTest.cpp
-    tests/integration/VulkanContextIntegrationTest.cpp
-    
-    # Real implementations
-    ${VULKAN_SOURCES}
-    ${PLATFORM_SOURCES}
-    ${RENDERER_SOURCES}
-)
+    message(STATUS "✓ Integration tests target configured")
+else()
+    message(STATUS "⚠ Skipping integration tests (Vulkan not available)")
+endif()
 
 target_include_directories(HybridRenderer_integration_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -180,29 +207,40 @@ message(STATUS "==========================")
 
 
 
-# Main executable
-add_executable(HybridRenderer
-    src/main.cpp
-    ${INTERFACE_HEADERS}
-    ${RENDERER_SOURCES}
-    ${VULKAN_SOURCES}
-    ${PLATFORM_SOURCES}
-)
+# Main executable (requires Vulkan)
+if(BUILD_VULKAN_TARGETS)
+    add_executable(HybridRenderer
+        src/main.cpp
+        ${INTERFACE_HEADERS}
+        ${RENDERER_SOURCES}
+        ${VULKAN_SOURCES}
+        ${PLATFORM_SOURCES}
+    )
 
-# Include directories
-target_include_directories(HybridRenderer PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${Vulkan_INCLUDE_DIRS}
-)
+    target_include_directories(HybridRenderer PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${Vulkan_INCLUDE_DIRS}
+    )
 
-# Link libraries
-target_link_libraries(HybridRenderer PRIVATE
-    Vulkan::Vulkan
-    glfw
-)
+    target_link_libraries(HybridRenderer PRIVATE
+        Vulkan::Vulkan
+        glfw
+    )
 
-# Add shader dependency
-add_dependencies(HybridRenderer Shaders)
+    add_dependencies(HybridRenderer Shaders)
+
+    if(WIN32)
+        target_compile_definitions(HybridRenderer PRIVATE
+            VK_USE_PLATFORM_WIN32_KHR
+            NOMINMAX
+            WIN32_LEAN_AND_MEAN
+        )
+    endif()
+    
+    message(STATUS "✓ Main application target configured")
+else()
+    message(STATUS "⚠ Skipping main application (Vulkan not available)")
+endif()
 
 # ==================== PLATFORM-SPECIFIC SETTINGS ====================
 
