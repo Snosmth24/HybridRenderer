@@ -3,6 +3,11 @@
 #include "../mocks/MockWindow.h"
 #include "../mocks/MockGraphicsContext.h"
 #include "../../src/utils/Logger.h"
+#include <chrono>
+
+using std::chrono::high_resolution_clock;  
+using std::chrono::milliseconds;
+using std::chrono::duration_cast;
 
 /**
  * Test fixture for Renderer unit tests
