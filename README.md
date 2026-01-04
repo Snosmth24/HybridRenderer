@@ -1,141 +1,153 @@
 # Hybrid Renderer
 
 [![CI](https://github.com/Snosmth24/HybridRenderer/actions/workflows/ci.yml/badge.svg)](https://github.com/Snosmth24/HybridRenderer/actions/workflows/ci.yml)
-[![Unit Tests](https://img.shields.io/badge/unit%20tests-passing-brightgreen)](https://github.com/Snosmth24/HybridRenderer/actions)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-66%20passing-brightgreen)](https://github.com/Snosmth24/HybridRenderer)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-blue)](https://github.com/Snosmth24/HybridRenderer)
 
-GPU rendering engine combining rasterization and ray tracing with comprehensive test coverage.
+> GPU rendering engine demonstrating **professional QA engineering practices** for NVIDIA application.
 
-## Features
+## QA Engineering Focus
 
-- ✅ Vulkan 1.3 rendering pipeline
-- ✅ 49 unit tests (headless, < 20ms)
-- ✅ 17 integration tests (GPU required)
-- ✅ Automated CI/CD pipeline
-- ✅ Cross-platform (Windows, Linux)
-- ✅ Mock-based testing for rapid iteration
+This project showcases:
+- ✅ **Automated Testing** - 66 tests, 100% automated
+- ✅ **CI/CD Pipeline** - GitHub Actions, multi-platform
+- ✅ **Headless Testing** - Unit tests run without GPU
+- ✅ **Mock-Based Testing** - Fast iteration (< 20ms)
+- ✅ **Cross-Platform** - Windows + Linux
+- ✅ **Bug Documentation** - [6 bugs found and fixed](docs/bugs_found.md)
 
 ## Quick Start
-
-### Windows
-```cmd
-git clone https://github.com/Snosmth24/HybridRenderer.git
-cd HybridRenderer
-git submodule update --init --recursive
-build.bat
-```
-
-### Linux
 ```bash
+# Clone
 git clone https://github.com/Snosmth24/HybridRenderer.git
 cd HybridRenderer
-git submodule update --init --recursive
-./build.sh
+
+# Run tests (no GPU needed!)
+test_quick.bat          # Windows
+./test_quick.sh         # Linux
+
+# Output: ✅ 49 tests passed in 15ms
 ```
 
-## Testing
+## Test Architecture
+```
+Tests (66 total)
+├── Unit Tests (49) - Headless, < 20ms
+│   ├── Mock objects (no GPU)
+│   ├── Fast iteration
+│   └── CI/CD friendly
+└── Integration Tests (17) - Real GPU, ~3500ms
+    ├── Vulkan validation
+    ├── Driver compatibility
+    └── Visual verification
+```
 
-### Quick Test (No GPU Required)
-```cmd
+## CI/CD Pipeline
+```
+Git Push
+  ↓
+GitHub Actions
+  ├─ Windows: Build + Test (49 tests)
+  └─ Linux:   Build + Test (49 tests)
+  ↓
+Status: ✅ All Passed
+Time: ~2 minutes
+```
+
+## Key Features (QA Perspective)
+
+### 1. Test Coverage
+- 49 unit tests (business logic)
+- 17 integration tests (GPU functionality)
+- Edge case testing (window resize, cleanup, errors)
+- Performance testing (frame timing)
+
+### 2. Automated Quality Checks
+- Every commit tested automatically
+- No manual testing for PRs
+- Cross-platform validation
+- Fast feedback (< 2 minutes)
+
+### 3. Professional Practices
+- Mock-based testing for speed
+- Interface-based architecture for testability
+- Dependency injection for flexibility
+- RAII for resource safety
+
+## Technologies
+
+- **Graphics API:** Vulkan 1.3
+- **Testing:** Google Test + custom mocks
+- **CI/CD:** GitHub Actions
+- **Platforms:** Windows, Linux
+- **Build:** CMake 3.20+
+
+## Documentation
+
+- [Test Results](docs/test_results.md) - Detailed test metrics
+- [Bugs Found](docs/bugs_found.md) - **6 bugs documented**
+- [Contributing](CONTRIBUTING.md) - Development workflow
+- [Installation (Linux)](docs/installation_linux.md)
+
+## Running Tests
+
+### Unit Tests (No GPU Required)
+```bash
 # Windows
 test_quick.bat
 
-# Linux
+# Linux  
 ./test_quick.sh
+
+# Output
+✅ 49 tests passed in 15ms
 ```
 
-**Output:**
-```
-✅ 49 unit tests passed in 15ms
-```
-
-### Full Test Suite (GPU Required)
-```cmd
+### Full Suite (GPU Required)
+```bash
 # Windows
 test_full.bat
 
 # Linux
 ./test_full.sh
-```
 
-**Output:**
-```
+# Output
 ✅ 49 unit tests passed in 15ms
 ✅ 17 integration tests passed in 3421ms
 ```
 
-## Architecture
-```
-HybridRenderer/
-├── src/
-│   ├── interfaces/      # Abstract contracts (IWindow, IGraphicsContext)
-│   ├── renderer/        # Core rendering logic
-│   ├── vulkan/          # Vulkan implementation
-│   └── platform/        # GLFW windowing
-├── tests/
-│   ├── unit/            # Fast tests (49 tests, ~15ms, no GPU)
-│   ├── integration/     # Slow tests (17 tests, ~3500ms, needs GPU)
-│   └── mocks/           # Test doubles for headless testing
-└── .github/
-    └── workflows/       # CI/CD automation
-```
-
-## Test Coverage
-
-| Type | Count | Time | Requirements |
-|------|-------|------|--------------|
-| Unit | 49 | 15ms | None (headless) |
-| Integration | 17 | 3500ms | GPU + drivers |
-| **Total** | **66** | **3515ms** | - |
-
-## CI/CD
-
-- ✅ Automated testing on every commit
-- ✅ Runs on Windows and Linux
-- ✅ Unit tests always run (headless)
-- ⚠️ Integration tests optional (need GPU)
-
-## Requirements
-
-### Development
-- CMake 3.20+
-- C++17 compiler
-- Vulkan SDK 1.3+
-- GPU with Vulkan support
-
-### Testing (Unit Tests Only)
-- CMake 3.20+
-- C++17 compiler
-- **No GPU required!**
-
-## Technologies
-
-- **Graphics API:** Vulkan 1.3
-- **Windowing:** GLFW 3.x
-- **Math:** GLM
-- **Testing:** Google Test
-- **Build:** CMake
-- **CI/CD:** GitHub Actions
-
-## Project Goals
+## For NVIDIA QA Role
 
 This project demonstrates:
-- Modern C++ graphics programming
-- Professional testing practices (unit + integration)
-- Headless testing for CI/CD
-- Mock-based testing for rapid iteration
-- Interface-based architecture for testability
-- Cross-platform development
+
+**QA Skills:**
+- Automated test creation and maintenance
+- CI/CD pipeline configuration
+- Cross-platform testing
+- Bug documentation and root cause analysis
+- Performance testing and profiling
+
+**Technical Skills:**
+- Vulkan API knowledge
+- C++17 systems programming
+- CMake build systems
+- Git/GitHub workflows
+- Linux and Windows development
+
+**Mindset:**
+- "How can this break?" thinking
+- Test-first development
+- Attention to edge cases
+- Documentation of findings
 
 ## License
 
-MIT License - see LICENSE file for details
+MIT License - See LICENSE file
 
 ## Author
 
-Built for NVIDIA QA Engineer application, demonstrating:
-- Vulkan API expertise
-- Automated testing
-- CI/CD integration
-- Mock-based testing
-- Cross-platform development
+Built to demonstrate QA engineering skills for NVIDIA GPU Software QA Engineer application.
+
+**Contact:** [Your Email]  
+**LinkedIn:** [Your LinkedIn]  
+**Portfolio:** [Your Portfolio]
