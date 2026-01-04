@@ -1,6 +1,6 @@
 SETLOCAL ENABLEDELAYEDEXPANSION
 
-SET BAZEL_EXE=%KOKORO_GFILE_DIR%\bazel-8.2.1-windows-x86_64.exe
+SET BAZEL_EXE=%KOKORO_GFILE_DIR%\bazel-5.1.1-windows-x86_64.exe
 
 SET PATH=C:\Python34;%PATH%
 SET BAZEL_PYTHON=C:\python34\python.exe
@@ -11,18 +11,21 @@ SET CTEST_OUTPUT_ON_FAILURE=1
 SET CMAKE_BUILD_PARALLEL_LEVEL=16
 SET CTEST_PARALLEL_LEVEL=16
 
-SET GTEST_ROOT=%~dp0\..
+IF EXIST git\googletest (
+  CD git\googletest
+) ELSE IF EXIST github\googletest (
+  CD github\googletest
+)
+
 IF %errorlevel% neq 0 EXIT /B 1
 
 :: ----------------------------------------------------------------------------
 :: CMake
-SET CMAKE_BUILD_PATH=cmake_msvc2022
-MKDIR %CMAKE_BUILD_PATH%
-CD %CMAKE_BUILD_PATH%
+MKDIR cmake_msvc2022
+CD cmake_msvc2022
 
-%CMAKE_BIN% %GTEST_ROOT% ^
+%CMAKE_BIN% .. ^
   -G "Visual Studio 17 2022" ^
-  -DCMAKE_CXX_STANDARD=17 ^
   -DPYTHON_EXECUTABLE:FILEPATH=c:\python37\python.exe ^
   -DPYTHON_INCLUDE_DIR:PATH=c:\python37\include ^
   -DPYTHON_LIBRARY:FILEPATH=c:\python37\lib\site-packages\pip ^
@@ -37,49 +40,19 @@ IF %errorlevel% neq 0 EXIT /B 1
 %CTEST_BIN% -C Debug --timeout 600
 IF %errorlevel% neq 0 EXIT /B 1
 
-CD %GTEST_ROOT%
-RMDIR /S /Q %CMAKE_BUILD_PATH%
+CD ..
+RMDIR /S /Q cmake_msvc2022
 
 :: ----------------------------------------------------------------------------
 :: Bazel
 
-:: The default home directory on Kokoro is a long path which causes errors
-:: because of Windows limitations on path length.
-:: --output_user_root=C:\tmp causes Bazel to use a shorter path.
 SET BAZEL_VS=C:\Program Files\Microsoft Visual Studio\2022\Community
-
-:: Use Bazel Vendor mode to reduce reliance on external dependencies.
-IF EXIST "%KOKORO_GFILE_DIR%\distdir\googletest_vendor.tar.gz" (
-  tar --force-local -xf "%KOKORO_GFILE_DIR%\distdir\googletest_vendor.tar.gz" -C c:
-  SET VENDOR_FLAG=--vendor_dir=c:\googletest_vendor
-) ELSE (
-  SET VENDOR_FLAG=
-)
-
-:: C++17
-%BAZEL_EXE% ^
-  --output_user_root=C:\tmp ^
-  test ... ^
+%BAZEL_EXE% test ... ^
   --compilation_mode=dbg ^
-  --copt=/std:c++17 ^
+  --copt=/std:c++14 ^
   --copt=/WX ^
-  --enable_bzlmod=true ^
+  --features=external_include_paths ^
   --keep_going ^
   --test_output=errors ^
-  --test_tag_filters=-no_test_msvc2017 ^
-  %VENDOR_FLAG%
-IF %errorlevel% neq 0 EXIT /B 1
-
-:: C++20
-%BAZEL_EXE% ^
-  --output_user_root=C:\tmp ^
-  test ... ^
-  --compilation_mode=dbg ^
-  --copt=/std:c++20 ^
-  --copt=/WX ^
-  --enable_bzlmod=true ^
-  --keep_going ^
-  --test_output=errors ^
-  --test_tag_filters=-no_test_msvc2017 ^
-  %VENDOR_FLAG%
+  --test_tag_filters=-no_test_msvc2017
 IF %errorlevel% neq 0 EXIT /B 1

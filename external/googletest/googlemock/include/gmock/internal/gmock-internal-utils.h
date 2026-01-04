@@ -44,7 +44,6 @@
 #include <ostream>  // NOLINT
 #include <string>
 #include <type_traits>
-#include <utility>
 #include <vector>
 
 #include "gmock/internal/gmock-port.h"
@@ -220,7 +219,7 @@ using LosslessArithmeticConvertible =
 
 // This interface knows how to report a Google Mock failure (either
 // non-fatal or fatal).
-class [[nodiscard]] FailureReporterInterface {
+class FailureReporterInterface {
  public:
   // The type of a failure (either non-fatal or fatal).
   enum FailureType { kNonfatal, kFatal };
@@ -296,14 +295,10 @@ GTEST_API_ void Log(LogSeverity severity, const std::string& message,
 //
 //    ON_CALL(mock, Method({}, nullptr))...
 //
-class [[nodiscard]] WithoutMatchers {
+class WithoutMatchers {
  private:
-  WithoutMatchers() = default;
-  friend
-#ifdef GTEST_OS_WINDOWS
-      GTEST_API_
-#endif
-          WithoutMatchers GetWithoutMatchers();
+  WithoutMatchers() {}
+  friend GTEST_API_ WithoutMatchers GetWithoutMatchers();
 };
 
 // Internal use only: access the singleton instance of WithoutMatchers.
@@ -344,7 +339,7 @@ inline T Invalid() {
 // This generic version is used when RawContainer itself is already an
 // STL-style container.
 template <class RawContainer>
-class [[nodiscard]] StlContainerView {
+class StlContainerView {
  public:
   typedef RawContainer type;
   typedef const type& const_reference;
@@ -359,7 +354,7 @@ class [[nodiscard]] StlContainerView {
 
 // This specialization is used when RawContainer is a native array type.
 template <typename Element, size_t N>
-class [[nodiscard]] StlContainerView<Element[N]> {
+class StlContainerView<Element[N]> {
  public:
   typedef typename std::remove_const<Element>::type RawElement;
   typedef internal::NativeArray<RawElement> type;
@@ -383,7 +378,7 @@ class [[nodiscard]] StlContainerView<Element[N]> {
 // This specialization is used when RawContainer is a native array
 // represented as a (pointer, size) tuple.
 template <typename ElementPointer, typename Size>
-class [[nodiscard]] StlContainerView< ::std::tuple<ElementPointer, Size> > {
+class StlContainerView< ::std::tuple<ElementPointer, Size> > {
  public:
   typedef typename std::remove_const<
       typename std::pointer_traits<ElementPointer>::element_type>::type
@@ -425,7 +420,7 @@ struct RemoveConstFromKey<std::pair<const K, V> > {
 GTEST_API_ void IllegalDoDefault(const char* file, int line);
 
 template <typename F, typename Tuple, size_t... Idx>
-auto ApplyImpl(F&& f, Tuple&& args, std::index_sequence<Idx...>)
+auto ApplyImpl(F&& f, Tuple&& args, IndexSequence<Idx...>)
     -> decltype(std::forward<F>(f)(
         std::get<Idx>(std::forward<Tuple>(args))...)) {
   return std::forward<F>(f)(std::get<Idx>(std::forward<Tuple>(args))...);
@@ -433,13 +428,12 @@ auto ApplyImpl(F&& f, Tuple&& args, std::index_sequence<Idx...>)
 
 // Apply the function to a tuple of arguments.
 template <typename F, typename Tuple>
-auto Apply(F&& f, Tuple&& args)
-    -> decltype(ApplyImpl(
-        std::forward<F>(f), std::forward<Tuple>(args),
-        std::make_index_sequence<std::tuple_size<
-            typename std::remove_reference<Tuple>::type>::value>())) {
+auto Apply(F&& f, Tuple&& args) -> decltype(ApplyImpl(
+    std::forward<F>(f), std::forward<Tuple>(args),
+    MakeIndexSequence<std::tuple_size<
+        typename std::remove_reference<Tuple>::type>::value>())) {
   return ApplyImpl(std::forward<F>(f), std::forward<Tuple>(args),
-                   std::make_index_sequence<std::tuple_size<
+                   MakeIndexSequence<std::tuple_size<
                        typename std::remove_reference<Tuple>::type>::value>());
 }
 
@@ -470,6 +464,11 @@ struct Function<R(Args...)> {
   using MakeResultVoid = void(Args...);
   using MakeResultIgnoredValue = IgnoredValue(Args...);
 };
+
+#ifdef GTEST_INTERNAL_NEED_REDUNDANT_CONSTEXPR_DECL
+template <typename R, typename... Args>
+constexpr size_t Function<R(Args...)>::ArgumentCount;
+#endif
 
 // Workaround for MSVC error C2039: 'type': is not a member of 'std'
 // when std::tuple_element is used.

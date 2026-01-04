@@ -44,7 +44,6 @@
 #include <iostream>
 #include <ostream>  // NOLINT
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -156,7 +155,7 @@ GTEST_API_ void Log(LogSeverity severity, const std::string& message,
   if (!LogIsVisible(severity)) return;
 
   // Ensures that logs from different threads don't interleave.
-  MutexLock l(g_log_mutex);
+  MutexLock l(&g_log_mutex);
 
   if (severity == kWarning) {
     // Prints a GMOCK WARNING marker to make the warnings easily searchable.
@@ -212,14 +211,14 @@ constexpr char UnBase64Impl(char c, const char* const base64, char carry) {
 }
 
 template <size_t... I>
-constexpr std::array<char, 256> UnBase64Impl(std::index_sequence<I...>,
+constexpr std::array<char, 256> UnBase64Impl(IndexSequence<I...>,
                                              const char* const base64) {
   return {
       {UnBase64Impl(UndoWebSafeEncoding(static_cast<char>(I)), base64, 0)...}};
 }
 
 constexpr std::array<char, 256> UnBase64(const char* const base64) {
-  return UnBase64Impl(std::make_index_sequence<256>{}, base64);
+  return UnBase64Impl(MakeIndexSequence<256>{}, base64);
 }
 
 static constexpr char kBase64[] =

@@ -58,6 +58,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <iomanip>
 #include <limits>
 #include <map>
 #include <set>
@@ -78,7 +79,7 @@
 //
 // will result in the token foo__LINE__, instead of foo followed by
 // the current line number.  For more details, see
-// https://www.parashift.com/c++-faq-lite/misc-technical-issues.html#faq-39.6
+// http://www.parashift.com/c++-faq-lite/misc-technical-issues.html#faq-39.6
 #define GTEST_CONCAT_TOKEN_(foo, bar) GTEST_CONCAT_TOKEN_IMPL_(foo, bar)
 #define GTEST_CONCAT_TOKEN_IMPL_(foo, bar) foo##bar
 
@@ -95,7 +96,7 @@
 #define GTEST_STRINGIFY_(...) GTEST_STRINGIFY_HELPER_(__VA_ARGS__, )
 
 namespace proto2 {
-class [[nodiscard]] MessageLite;
+class MessageLite;
 }
 
 namespace testing {
@@ -115,15 +116,15 @@ template <typename T>
 namespace internal {
 
 struct TraceInfo;    // Information about a trace point.
-class [[nodiscard]] TestInfoImpl;  // Opaque implementation of TestInfo
-class [[nodiscard]] UnitTestImpl;  // Opaque implementation of UnitTest
+class TestInfoImpl;  // Opaque implementation of TestInfo
+class UnitTestImpl;  // Opaque implementation of UnitTest
 
 // The text used in failure messages to indicate the start of the
 // stack trace.
 GTEST_API_ extern const char kStackTraceMarker[];
 
 // An IgnoredValue object can be implicitly constructed from ANY value.
-class [[nodiscard]] IgnoredValue {
+class IgnoredValue {
   struct Sink {};
 
  public:
@@ -155,8 +156,7 @@ GTEST_DISABLE_MSC_WARNINGS_PUSH_(
 // errors presumably detectable only at run time.  Since
 // std::runtime_error inherits from std::exception, many testing
 // frameworks know how to extract and print the message inside it.
-class GTEST_API_ [[nodiscard]] GoogleTestFailureException
-    : public ::std::runtime_error {
+class GTEST_API_ GoogleTestFailureException : public ::std::runtime_error {
  public:
   explicit GoogleTestFailureException(const TestPartResult& failure);
 };
@@ -170,7 +170,7 @@ namespace edit_distance {
 // All edits cost the same, with replace having lower priority than
 // add/remove.
 // Simple implementation of the Wagner-Fischer algorithm.
-// See https://en.wikipedia.org/wiki/Wagner-Fischer_algorithm
+// See http://en.wikipedia.org/wiki/Wagner-Fischer_algorithm
 enum EditType { kMatch, kAdd, kRemove, kReplace };
 GTEST_API_ std::vector<EditType> CalculateOptimalEdits(
     const std::vector<size_t>& left, const std::vector<size_t>& right);
@@ -237,13 +237,13 @@ GTEST_API_ std::string GetBoolAssertionFailureMessage(
 //   For double, there are 11 exponent bits and 52 fraction bits.
 //
 //   More details can be found at
-//   https://en.wikipedia.org/wiki/IEEE_floating-point_standard.
+//   http://en.wikipedia.org/wiki/IEEE_floating-point_standard.
 //
 // Template parameter:
 //
 //   RawType: the raw floating-point type (either float or double)
 template <typename RawType>
-class [[nodiscard]] FloatingPoint {
+class FloatingPoint {
  public:
   // Defines the unsigned integer type that has the same size as the
   // floating point number.
@@ -282,7 +282,7 @@ class [[nodiscard]] FloatingPoint {
   // bits.  Therefore, 4 should be enough for ordinary use.
   //
   // See the following article for more details on ULP:
-  // https://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
+  // http://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
   static const uint32_t kMaxUlps = 4;
 
   // Constructs a FloatingPoint from a raw floating-point number.
@@ -291,17 +291,17 @@ class [[nodiscard]] FloatingPoint {
   // around may change its bits, although the new value is guaranteed
   // to be also a NAN.  Therefore, don't expect this constructor to
   // preserve the bits in x when x is a NAN.
-  explicit FloatingPoint(RawType x) { memcpy(&bits_, &x, sizeof(x)); }
+  explicit FloatingPoint(const RawType& x) { u_.value_ = x; }
 
   // Static methods
 
   // Reinterprets a bit pattern as a floating-point number.
   //
   // This function is needed to test the AlmostEquals() method.
-  static RawType ReinterpretBits(Bits bits) {
-    RawType fp;
-    memcpy(&fp, &bits, sizeof(fp));
-    return fp;
+  static RawType ReinterpretBits(const Bits bits) {
+    FloatingPoint fp(0);
+    fp.u_.bits_ = bits;
+    return fp.u_.value_;
   }
 
   // Returns the floating-point number that represent positive infinity.
@@ -310,16 +310,16 @@ class [[nodiscard]] FloatingPoint {
   // Non-static methods
 
   // Returns the bits that represents this number.
-  const Bits& bits() const { return bits_; }
+  const Bits& bits() const { return u_.bits_; }
 
   // Returns the exponent bits of this number.
-  Bits exponent_bits() const { return kExponentBitMask & bits_; }
+  Bits exponent_bits() const { return kExponentBitMask & u_.bits_; }
 
   // Returns the fraction bits of this number.
-  Bits fraction_bits() const { return kFractionBitMask & bits_; }
+  Bits fraction_bits() const { return kFractionBitMask & u_.bits_; }
 
   // Returns the sign bit of this number.
-  Bits sign_bit() const { return kSignBitMask & bits_; }
+  Bits sign_bit() const { return kSignBitMask & u_.bits_; }
 
   // Returns true if and only if this is NAN (not a number).
   bool is_nan() const {
@@ -333,16 +333,23 @@ class [[nodiscard]] FloatingPoint {
   //
   //   - returns false if either number is (or both are) NAN.
   //   - treats really large numbers as almost equal to infinity.
-  //   - thinks +0.0 and -0.0 are 0 ULP's apart.
+  //   - thinks +0.0 and -0.0 are 0 DLP's apart.
   bool AlmostEquals(const FloatingPoint& rhs) const {
     // The IEEE standard says that any comparison operation involving
     // a NAN must return false.
     if (is_nan() || rhs.is_nan()) return false;
 
-    return DistanceBetweenSignAndMagnitudeNumbers(bits_, rhs.bits_) <= kMaxUlps;
+    return DistanceBetweenSignAndMagnitudeNumbers(u_.bits_, rhs.u_.bits_) <=
+           kMaxUlps;
   }
 
  private:
+  // The data type used to store the actual floating-point number.
+  union FloatingPointUnion {
+    RawType value_;  // The raw floating-point number.
+    Bits bits_;      // The bits that represent the number.
+  };
+
   // Converts an integer from the sign-and-magnitude representation to
   // the biased representation.  More precisely, let N be 2 to the
   // power of (kBitCount - 1), an integer x is represented by the
@@ -356,9 +363,9 @@ class [[nodiscard]] FloatingPoint {
   //   N - 1  (the biggest number representable using
   //          sign-and-magnitude) is represented by 2N - 1.
   //
-  // Read https://en.wikipedia.org/wiki/Signed_number_representations
+  // Read http://en.wikipedia.org/wiki/Signed_number_representations
   // for more details on signed number representations.
-  static Bits SignAndMagnitudeToBiased(Bits sam) {
+  static Bits SignAndMagnitudeToBiased(const Bits& sam) {
     if (kSignBitMask & sam) {
       // sam represents a negative number.
       return ~sam + 1;
@@ -370,13 +377,14 @@ class [[nodiscard]] FloatingPoint {
 
   // Given two numbers in the sign-and-magnitude representation,
   // returns the distance between them as an unsigned number.
-  static Bits DistanceBetweenSignAndMagnitudeNumbers(Bits sam1, Bits sam2) {
+  static Bits DistanceBetweenSignAndMagnitudeNumbers(const Bits& sam1,
+                                                     const Bits& sam2) {
     const Bits biased1 = SignAndMagnitudeToBiased(sam1);
     const Bits biased2 = SignAndMagnitudeToBiased(sam2);
     return (biased1 >= biased2) ? (biased1 - biased2) : (biased2 - biased1);
   }
 
-  Bits bits_;  // The bits that represent the number.
+  FloatingPointUnion u_;
 };
 
 // Typedefs the instances of the FloatingPoint template class that we
@@ -393,7 +401,7 @@ typedef FloatingPoint<double> Double;
 typedef const void* TypeId;
 
 template <typename T>
-class [[nodiscard]] TypeIdHelper {
+class TypeIdHelper {
  public:
   // dummy_ must not have a const type.  Otherwise an overly eager
   // compiler (e.g. MSVC 7.1 & 8.0) may try to merge
@@ -425,7 +433,7 @@ GTEST_API_ TypeId GetTestTypeId();
 
 // Defines the abstract factory interface that creates instances
 // of a Test object.
-class [[nodiscard]] TestFactoryBase {
+class TestFactoryBase {
  public:
   virtual ~TestFactoryBase() = default;
 
@@ -444,7 +452,7 @@ class [[nodiscard]] TestFactoryBase {
 // This class provides implementation of TestFactoryBase interface.
 // It is used in TEST and TEST_F macros.
 template <class TestClass>
-class [[nodiscard]] TestFactoryImpl : public TestFactoryBase {
+class TestFactoryImpl : public TestFactoryBase {
  public:
   Test* CreateTest() override { return new TestClass; }
 };
@@ -467,8 +475,8 @@ using SetUpTestSuiteFunc = void (*)();
 using TearDownTestSuiteFunc = void (*)();
 
 struct CodeLocation {
-  CodeLocation(std::string a_file, int a_line)
-      : file(std::move(a_file)), line(a_line) {}
+  CodeLocation(const std::string& a_file, int a_line)
+      : file(a_file), line(a_line) {}
 
   std::string file;
   int line;
@@ -548,7 +556,7 @@ struct SuiteApiResolver : T {
 //   type_param:       the name of the test's type parameter, or NULL if
 //                     this is not a typed or a type-parameterized test.
 //   value_param:      text representation of the test's value parameter,
-//                     or NULL if this is not a value-parameterized test.
+//                     or NULL if this is not a type-parameterized test.
 //   code_location:    code location where the test is defined
 //   fixture_class_id: ID of the test fixture class
 //   set_up_tc:        pointer to the function that sets up the test suite
@@ -557,7 +565,7 @@ struct SuiteApiResolver : T {
 //                     The newly created TestInfo instance will assume
 //                     ownership of the factory object.
 GTEST_API_ TestInfo* MakeAndRegisterTestInfo(
-    std::string test_suite_name, const char* name, const char* type_param,
+    const char* test_suite_name, const char* name, const char* type_param,
     const char* value_param, CodeLocation code_location,
     TypeId fixture_class_id, SetUpTestSuiteFunc set_up_tc,
     TearDownTestSuiteFunc tear_down_tc, TestFactoryBase* factory);
@@ -571,7 +579,7 @@ GTEST_DISABLE_MSC_WARNINGS_PUSH_(4251 \
 /* class A needs to have dll-interface to be used by clients of class B */)
 
 // State of the definition of a type-parameterized test suite.
-class GTEST_API_ [[nodiscard]] TypedTestSuitePState {
+class GTEST_API_ TypedTestSuitePState {
  public:
   TypedTestSuitePState() : registered_(false) {}
 
@@ -588,7 +596,8 @@ class GTEST_API_ [[nodiscard]] TypedTestSuitePState {
       fflush(stderr);
       posix::Abort();
     }
-    registered_tests_.emplace(test_name, CodeLocation(file, line));
+    registered_tests_.insert(
+        ::std::make_pair(test_name, CodeLocation(file, line)));
     return true;
   }
 
@@ -686,13 +695,13 @@ std::vector<std::string> GenerateNames() {
 // Implementation note: The GTEST_TEMPLATE_ macro declares a template
 // template parameter.  It's defined in gtest-type-util.h.
 template <GTEST_TEMPLATE_ Fixture, class TestSel, typename Types>
-class [[nodiscard]] TypeParameterizedTest {
+class TypeParameterizedTest {
  public:
   // 'index' is the index of the test in the type list 'Types'
   // specified in INSTANTIATE_TYPED_TEST_SUITE_P(Prefix, TestSuite,
   // Types).  Valid values for 'index' are [0, N - 1] where N is the
   // length of Types.
-  static bool Register(const char* prefix, CodeLocation code_location,
+  static bool Register(const char* prefix, const CodeLocation& code_location,
                        const char* case_name, const char* test_names, int index,
                        const std::vector<std::string>& type_names =
                            GenerateNames<DefaultNameGenerator, Types>()) {
@@ -704,7 +713,8 @@ class [[nodiscard]] TypeParameterizedTest {
     // list.
     MakeAndRegisterTestInfo(
         (std::string(prefix) + (prefix[0] == '\0' ? "" : "/") + case_name +
-         "/" + type_names[static_cast<size_t>(index)]),
+         "/" + type_names[static_cast<size_t>(index)])
+            .c_str(),
         StripTrailingSpaces(GetPrefixUntilComma(test_names)).c_str(),
         GetTypeName<Type>().c_str(),
         nullptr,  // No value parameter.
@@ -716,17 +726,21 @@ class [[nodiscard]] TypeParameterizedTest {
         new TestFactoryImpl<TestClass>);
 
     // Next, recurses (at compile time) with the tail of the type list.
-    return TypeParameterizedTest<Fixture, TestSel, typename Types::Tail>::
-        Register(prefix, std::move(code_location), case_name, test_names,
-                 index + 1, type_names);
+    return TypeParameterizedTest<Fixture, TestSel,
+                                 typename Types::Tail>::Register(prefix,
+                                                                 code_location,
+                                                                 case_name,
+                                                                 test_names,
+                                                                 index + 1,
+                                                                 type_names);
   }
 };
 
 // The base case for the compile time recursion.
 template <GTEST_TEMPLATE_ Fixture, class TestSel>
-class [[nodiscard]] TypeParameterizedTest<Fixture, TestSel, internal::None> {
+class TypeParameterizedTest<Fixture, TestSel, internal::None> {
  public:
-  static bool Register(const char* /*prefix*/, CodeLocation,
+  static bool Register(const char* /*prefix*/, const CodeLocation&,
                        const char* /*case_name*/, const char* /*test_names*/,
                        int /*index*/,
                        const std::vector<std::string>& =
@@ -745,7 +759,7 @@ GTEST_API_ void RegisterTypeParameterizedTestSuiteInstantiation(
 // Test.  The return value is insignificant - we just need to return
 // something such that we can call this function in a namespace scope.
 template <GTEST_TEMPLATE_ Fixture, typename Tests, typename Types>
-class [[nodiscard]] TypeParameterizedTestSuite {
+class TypeParameterizedTestSuite {
  public:
   static bool Register(const char* prefix, CodeLocation code_location,
                        const TypedTestSuitePState* state, const char* case_name,
@@ -773,8 +787,7 @@ class [[nodiscard]] TypeParameterizedTestSuite {
 
     // Next, recurses (at compile time) with the tail of the test list.
     return TypeParameterizedTestSuite<Fixture, typename Tests::Tail,
-                                      Types>::Register(prefix,
-                                                       std::move(code_location),
+                                      Types>::Register(prefix, code_location,
                                                        state, case_name,
                                                        SkipComma(test_names),
                                                        type_names);
@@ -783,7 +796,7 @@ class [[nodiscard]] TypeParameterizedTestSuite {
 
 // The base case for the compile time recursion.
 template <GTEST_TEMPLATE_ Fixture, typename Types>
-class [[nodiscard]] TypeParameterizedTestSuite<Fixture, internal::None, Types> {
+class TypeParameterizedTestSuite<Fixture, internal::None, Types> {
  public:
   static bool Register(const char* /*prefix*/, const CodeLocation&,
                        const TypedTestSuitePState* /*state*/,
@@ -839,7 +852,7 @@ struct TrueWithString {
 // doesn't use global state (and therefore can't interfere with user
 // code).  Unlike rand_r(), it's portable.  An LCG isn't very random,
 // but it's good enough for our purposes.
-class GTEST_API_ [[nodiscard]] Random {
+class GTEST_API_ Random {
  public:
   static const uint32_t kMaxRange = 1u << 31;
 
@@ -865,7 +878,7 @@ class GTEST_API_ [[nodiscard]] Random {
 // that's true if and only if T has methods DebugString() and ShortDebugString()
 // that return std::string.
 template <typename T>
-class [[nodiscard]] HasDebugStringAndShortDebugString {
+class HasDebugStringAndShortDebugString {
  private:
   template <typename C>
   static auto CheckDebugString(C*) -> typename std::is_same<
@@ -886,6 +899,11 @@ class [[nodiscard]] HasDebugStringAndShortDebugString {
   static constexpr bool value =
       HasDebugStringType::value && HasShortDebugStringType::value;
 };
+
+#ifdef GTEST_INTERNAL_NEED_REDUNDANT_CONSTEXPR_DECL
+template <typename T>
+constexpr bool HasDebugStringAndShortDebugString<T>::value;
+#endif
 
 // When the compiler sees expression IsContainerTest<C>(0), if C is an
 // STL-style container class, the first overload of IsContainerTest
@@ -1065,7 +1083,7 @@ struct RelationToSourceCopy {};
 // this requirement.  Element can be an array type itself (hence
 // multi-dimensional arrays are supported).
 template <typename Element>
-class [[nodiscard]] NativeArray {
+class NativeArray {
  public:
   // STL-style container typedefs.
   typedef Element value_type;
@@ -1125,6 +1143,40 @@ class [[nodiscard]] NativeArray {
   void (NativeArray::*clone_)(const Element*, size_t);
 };
 
+// Backport of std::index_sequence.
+template <size_t... Is>
+struct IndexSequence {
+  using type = IndexSequence;
+};
+
+// Double the IndexSequence, and one if plus_one is true.
+template <bool plus_one, typename T, size_t sizeofT>
+struct DoubleSequence;
+template <size_t... I, size_t sizeofT>
+struct DoubleSequence<true, IndexSequence<I...>, sizeofT> {
+  using type = IndexSequence<I..., (sizeofT + I)..., 2 * sizeofT>;
+};
+template <size_t... I, size_t sizeofT>
+struct DoubleSequence<false, IndexSequence<I...>, sizeofT> {
+  using type = IndexSequence<I..., (sizeofT + I)...>;
+};
+
+// Backport of std::make_index_sequence.
+// It uses O(ln(N)) instantiation depth.
+template <size_t N>
+struct MakeIndexSequenceImpl
+    : DoubleSequence<N % 2 == 1, typename MakeIndexSequenceImpl<N / 2>::type,
+                     N / 2>::type {};
+
+template <>
+struct MakeIndexSequenceImpl<0> : IndexSequence<> {};
+
+template <size_t N>
+using MakeIndexSequence = typename MakeIndexSequenceImpl<N>::type;
+
+template <typename... T>
+using IndexSequenceFor = typename MakeIndexSequence<sizeof...(T)>::type;
+
 template <size_t>
 struct Ignore {
   Ignore(...);  // NOLINT
@@ -1133,7 +1185,7 @@ struct Ignore {
 template <typename>
 struct ElemFromListImpl;
 template <size_t... I>
-struct ElemFromListImpl<std::index_sequence<I...>> {
+struct ElemFromListImpl<IndexSequence<I...>> {
   // We make Ignore a template to solve a problem with MSVC.
   // A non-template Ignore would work fine with `decltype(Ignore(I))...`, but
   // MSVC doesn't understand how to deal with that pack expansion.
@@ -1144,14 +1196,15 @@ struct ElemFromListImpl<std::index_sequence<I...>> {
 
 template <size_t N, typename... T>
 struct ElemFromList {
-  using type = decltype(ElemFromListImpl<std::make_index_sequence<N>>::Apply(
-      static_cast<T (*)()>(nullptr)...));
+  using type =
+      decltype(ElemFromListImpl<typename MakeIndexSequence<N>::type>::Apply(
+          static_cast<T (*)()>(nullptr)...));
 };
 
 struct FlatTupleConstructTag {};
 
 template <typename... T>
-class [[nodiscard]] FlatTuple;
+class FlatTuple;
 
 template <typename Derived, size_t I>
 struct FlatTupleElemBase;
@@ -1170,9 +1223,9 @@ template <typename Derived, typename Idx>
 struct FlatTupleBase;
 
 template <size_t... Idx, typename... T>
-struct FlatTupleBase<FlatTuple<T...>, std::index_sequence<Idx...>>
+struct FlatTupleBase<FlatTuple<T...>, IndexSequence<Idx...>>
     : FlatTupleElemBase<FlatTuple<T...>, Idx>... {
-  using Indices = std::index_sequence<Idx...>;
+  using Indices = IndexSequence<Idx...>;
   FlatTupleBase() = default;
   template <typename... Args>
   explicit FlatTupleBase(FlatTupleConstructTag, Args&&... args)
@@ -1207,15 +1260,14 @@ struct FlatTupleBase<FlatTuple<T...>, std::index_sequence<Idx...>>
 // implementations.
 // FlatTuple and ElemFromList are not recursive and have a fixed depth
 // regardless of T...
-// std::make_index_sequence, on the other hand, it is recursive but with an
+// MakeIndexSequence, on the other hand, it is recursive but with an
 // instantiation depth of O(ln(N)).
 template <typename... T>
-class [[nodiscard]] FlatTuple
+class FlatTuple
     : private FlatTupleBase<FlatTuple<T...>,
-                            std::make_index_sequence<sizeof...(T)>> {
-  using Indices =
-      typename FlatTupleBase<FlatTuple<T...>,
-                             std::make_index_sequence<sizeof...(T)>>::Indices;
+                            typename MakeIndexSequence<sizeof...(T)>::type> {
+  using Indices = typename FlatTupleBase<
+      FlatTuple<T...>, typename MakeIndexSequence<sizeof...(T)>::type>::Indices;
 
  public:
   FlatTuple() = default;
@@ -1229,40 +1281,30 @@ class [[nodiscard]] FlatTuple
 
 // Utility functions to be called with static_assert to induce deprecation
 // warnings.
-[[deprecated(
+GTEST_INTERNAL_DEPRECATED(
     "INSTANTIATE_TEST_CASE_P is deprecated, please use "
-    "INSTANTIATE_TEST_SUITE_P")]]
-constexpr bool InstantiateTestCase_P_IsDeprecated() {
-  return true;
-}
+    "INSTANTIATE_TEST_SUITE_P")
+constexpr bool InstantiateTestCase_P_IsDeprecated() { return true; }
 
-[[deprecated(
+GTEST_INTERNAL_DEPRECATED(
     "TYPED_TEST_CASE_P is deprecated, please use "
-    "TYPED_TEST_SUITE_P")]]
-constexpr bool TypedTestCase_P_IsDeprecated() {
-  return true;
-}
+    "TYPED_TEST_SUITE_P")
+constexpr bool TypedTestCase_P_IsDeprecated() { return true; }
 
-[[deprecated(
+GTEST_INTERNAL_DEPRECATED(
     "TYPED_TEST_CASE is deprecated, please use "
-    "TYPED_TEST_SUITE")]]
-constexpr bool TypedTestCaseIsDeprecated() {
-  return true;
-}
+    "TYPED_TEST_SUITE")
+constexpr bool TypedTestCaseIsDeprecated() { return true; }
 
-[[deprecated(
+GTEST_INTERNAL_DEPRECATED(
     "REGISTER_TYPED_TEST_CASE_P is deprecated, please use "
-    "REGISTER_TYPED_TEST_SUITE_P")]]
-constexpr bool RegisterTypedTestCase_P_IsDeprecated() {
-  return true;
-}
+    "REGISTER_TYPED_TEST_SUITE_P")
+constexpr bool RegisterTypedTestCase_P_IsDeprecated() { return true; }
 
-[[deprecated(
+GTEST_INTERNAL_DEPRECATED(
     "INSTANTIATE_TYPED_TEST_CASE_P is deprecated, please use "
-    "INSTANTIATE_TYPED_TEST_SUITE_P")]]
-constexpr bool InstantiateTypedTestCase_P_IsDeprecated() {
-  return true;
-}
+    "INSTANTIATE_TYPED_TEST_SUITE_P")
+constexpr bool InstantiateTypedTestCase_P_IsDeprecated() { return true; }
 
 }  // namespace internal
 }  // namespace testing
@@ -1318,7 +1360,7 @@ struct tuple_size<testing::internal::FlatTuple<Ts...>>
 namespace testing {
 namespace internal {
 
-class [[nodiscard]] NeverThrown {
+class NeverThrown {
  public:
   const char* what() const noexcept {
     return "this exception should never be thrown";
@@ -1499,7 +1541,7 @@ class [[nodiscard]] NeverThrown {
                                                                                \
    private:                                                                    \
     void TestBody() override;                                                  \
-    [[maybe_unused]] static ::testing::TestInfo* const test_info_;             \
+    static ::testing::TestInfo* const test_info_ GTEST_ATTRIBUTE_UNUSED_;      \
   };                                                                           \
                                                                                \
   ::testing::TestInfo* const GTEST_TEST_CLASS_NAME_(test_suite_name,           \

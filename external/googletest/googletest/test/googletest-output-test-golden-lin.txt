@@ -62,7 +62,7 @@ Expected equality of these values:
     Which is: "\"Line\0 1\"\nLine 2"
   "Line 2"
 With diff:
-@@ -1,2 +1 @@
+@@ -1,2 @@
 -\"Line\0 1\"
  Line 2
 
@@ -696,6 +696,7 @@ Expected: 1 fatal failure
   Actual:
 googletest-output-test_.cc:#: Success:
 Succeeded
+Stack trace: (omitted)
 
 
 Stack trace: (omitted)
@@ -732,6 +733,7 @@ Expected: 1 non-fatal failure
   Actual:
 googletest-output-test_.cc:#: Success:
 Succeeded
+Stack trace: (omitted)
 
 
 Stack trace: (omitted)
@@ -768,6 +770,7 @@ Expected: 1 fatal failure
   Actual:
 googletest-output-test_.cc:#: Success:
 Succeeded
+Stack trace: (omitted)
 
 
 Stack trace: (omitted)
@@ -804,6 +807,7 @@ Expected: 1 non-fatal failure
   Actual:
 googletest-output-test_.cc:#: Success:
 Succeeded
+Stack trace: (omitted)
 
 
 Stack trace: (omitted)
@@ -966,6 +970,7 @@ googletest-output-test_.cc:#: Skipped
 [0;32m[----------] [m1 test from TestSuiteThatSkipsInSetUp
 googletest-output-test_.cc:#: Skipped
 Skip entire test suite
+Stack trace: (omitted)
 
 [0;32m[ RUN      ] [mTestSuiteThatSkipsInSetUp.ShouldNotRun
 googletest-output-test_.cc:#: Skipped

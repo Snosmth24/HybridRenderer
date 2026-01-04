@@ -115,14 +115,11 @@ TEST(OutputFileHelpersTest, GetCurrentExecutableName) {
       strcasecmp("gtest_dll_test", exe_str.c_str()) == 0;
 #elif defined(GTEST_OS_FUCHSIA)
   const bool success = exe_str == "app";
-#elif defined(__EMSCRIPTEN__)
-  const bool success = exe_str == "patched_googletest-options-test.js";
 #else
   const bool success =
       exe_str == "googletest-options-test" || exe_str == "gtest_all_test" ||
       exe_str == "lt-gtest_all_test" || exe_str == "gtest_dll_test";
-#endif  // platform ifdefs
-
+#endif  // GTEST_OS_WINDOWS
   if (!success) FAIL() << "GetCurrentExecutableName() returns " << exe_str;
 }
 

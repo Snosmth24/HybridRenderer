@@ -1,5 +1,5 @@
 //========================================================================
-// GLFW 3.5 X11 - www.glfw.org
+// GLFW 3.4 X11 - www.glfw.org
 //------------------------------------------------------------------------
 // Copyright (c) 2002-2006 Marcus Geelnard
 // Copyright (c) 2006-2019 Camilla Löwy <elmindreda@glfw.org>
@@ -576,10 +576,6 @@ static GLFWbool createNativeWindow(_GLFWwindow* window,
         height *= _glfw.x11.contentScaleY;
     }
 
-    // The dimensions must be nonzero, or a BadValue error results.
-    width = _glfw_max(1, width);
-    height = _glfw_max(1, height);
-
     int xpos = 0, ypos = 0;
 
     if (wndconfig->xpos != GLFW_ANY_POSITION && wndconfig->ypos != GLFW_ANY_POSITION)
@@ -758,13 +754,13 @@ static GLFWbool createNativeWindow(_GLFWwindow* window,
             const char* resourceName = getenv("RESOURCE_NAME");
             if (resourceName && strlen(resourceName))
                 hint->res_name = (char*) resourceName;
-            else if (strlen(window->title))
-                hint->res_name = (char*) window->title;
+            else if (strlen(wndconfig->title))
+                hint->res_name = (char*) wndconfig->title;
             else
                 hint->res_name = (char*) "glfw-application";
 
-            if (strlen(window->title))
-                hint->res_class = (char*) window->title;
+            if (strlen(wndconfig->title))
+                hint->res_class = (char*) wndconfig->title;
             else
                 hint->res_class = (char*) "GLFW-Application";
         }
@@ -784,7 +780,7 @@ static GLFWbool createNativeWindow(_GLFWwindow* window,
     if (_glfw.x11.im)
         _glfwCreateInputContextX11(window);
 
-    _glfwSetWindowTitleX11(window, window->title);
+    _glfwSetWindowTitleX11(window, wndconfig->title);
     _glfwGetWindowPosX11(window, &window->x11.xpos, &window->x11.ypos);
     _glfwGetWindowSizeX11(window, &window->x11.width, &window->x11.height);
 
@@ -2207,10 +2203,6 @@ void _glfwGetWindowSizeX11(_GLFWwindow* window, int* width, int* height)
 
 void _glfwSetWindowSizeX11(_GLFWwindow* window, int width, int height)
 {
-    // The dimensions must be nonzero, or a BadValue error results
-    width = _glfw_max(1, width);
-    height = _glfw_max(1, height);
-
     if (window->monitor)
     {
         if (window->monitor->window == window)
@@ -3310,6 +3302,7 @@ GLFWAPI Display* glfwGetX11Display(void)
 
 GLFWAPI Window glfwGetX11Window(GLFWwindow* handle)
 {
+    _GLFWwindow* window = (_GLFWwindow*) handle;
     _GLFW_REQUIRE_INIT_OR_RETURN(None);
 
     if (_glfw.platform.platformID != GLFW_PLATFORM_X11)
@@ -3318,16 +3311,11 @@ GLFWAPI Window glfwGetX11Window(GLFWwindow* handle)
         return None;
     }
 
-    _GLFWwindow* window = (_GLFWwindow*) handle;
-    assert(window != NULL);
-
     return window->x11.handle;
 }
 
 GLFWAPI void glfwSetX11SelectionString(const char* string)
 {
-    assert(string != NULL);
-
     _GLFW_REQUIRE_INIT();
 
     if (_glfw.platform.platformID != GLFW_PLATFORM_X11)
