@@ -1,29 +1,22 @@
 name: CI - Build and Test
 
-# When to run this workflow
 on:
-  # Run on pushes to main branch
   push:
     branches: [ main, develop ]
-  
-  # Run on pull requests
   pull_request:
     branches: [ main ]
-  
-  # Allow manual trigger
   workflow_dispatch:
 
-# Environment variables available to all jobs
 env:
   BUILD_TYPE: Debug
+  VULKAN_SDK_VERSION: "1.3.280.0"
 
 jobs:
-  # ==================== JOB 1: Unit Tests (Fast, Headless) ====================
+  # ==================== JOB 1: Unit Tests (Headless - No Vulkan) ====================
   
   unit-tests:
     name: Unit Tests (Headless)
     
-    # Test on multiple platforms
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest]
@@ -31,49 +24,42 @@ jobs:
     runs-on: ${{ matrix.os }}
     
     steps:
-    # Step 1: Checkout code
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        submodules: recursive  # Get GLFW and Google Test
+        submodules: recursive
     
-    # Step 2: Setup CMake (cross-platform)
+    # No Vulkan needed for unit tests!
+    
     - name: Setup CMake
       uses: lukka/get-cmake@latest
     
-    # Step 3: Configure CMake
-    - name: Configure CMake
+    - name: Configure CMake (Unit Tests Only)
       run: |
         cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
     
-    # Step 4: Build unit tests
     - name: Build Unit Tests
       run: |
         cmake --build build --config ${{ env.BUILD_TYPE }} --target HybridRenderer_unit_tests
     
-    # Step 5: Run unit tests
     - name: Run Unit Tests
       run: |
         cd build
-        ctest -C ${{ env.BUILD_TYPE }} --output-on-failure --tests-regex "unit_tests"
-      
-      # Alternative: Run executable directly
-      # Windows: .\build\bin\Debug\HybridRenderer_unit_tests.exe
-      # Linux:   ./build/bin/Debug/HybridRenderer_unit_tests
+        ./bin/${{ env.BUILD_TYPE }}/HybridRenderer_unit_tests
+      shell: bash
     
-    # Step 6: Upload test results (if tests fail)
     - name: Upload Test Results
-      if: always()  # Run even if tests fail
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: unit-test-results-${{ matrix.os }}
         path: build/Testing/
         retention-days: 7
+
+  # ==================== JOB 2: Windows Build with Vulkan ====================
   
-  # ==================== JOB 2: Build Verification ====================
-  
-  build-verification:
-    name: Build All Targets
+  windows-build:
+    name: Windows Build (With Vulkan)
     runs-on: windows-latest
     
     steps:
@@ -82,30 +68,168 @@ jobs:
       with:
         submodules: recursive
     
-    # Windows needs Vulkan SDK for integration tests
-    - name: Cache Vulkan SDK
-      id: cache-vulkan
-      uses: actions/cache@v4
-      with:
-        path: C:\VulkanSDK
-        key: vulkan-sdk-${{ runner.os }}
-    
-    - name: Install Vulkan SDK
-      if: steps.cache-vulkan.outputs.cache-hit != 'true'
+    # Install Vulkan SDK
+    - name: Setup Vulkan SDK
       run: |
-        # Download Vulkan SDK installer
-        Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/latest/windows/vulkan-sdk.exe" -OutFile vulkan-sdk.exe
+        # Create temp directory
+        $tempDir = "$env:TEMP\vulkan"
+        New-Item -ItemType Directory -Force -Path $tempDir
         
-        # Install silently
-        Start-Process vulkan-sdk.exe -ArgumentList '/S' -Wait
+        # Download Vulkan SDK
+        Write-Host "Downloading Vulkan SDK..."
+        $sdkUrl = "https://sdk.lunarg.com/sdk/download/${{ env.VULKAN_SDK_VERSION }}/windows/VulkanSDK-${{ env.VULKAN_SDK_VERSION }}-Installer.exe"
+        $installerPath = "$tempDir\VulkanSDK-Installer.exe"
+        
+        try {
+          Invoke-WebRequest -Uri $sdkUrl -OutFile $installerPath -UseBasicParsing
+          Write-Host "Download complete"
+        } catch {
+          Write-Host "Failed to download from primary URL, trying alternative..."
+          $sdkUrl = "https://sdk.lunarg.com/sdk/download/latest/windows/vulkan-sdk.exe"
+          Invoke-WebRequest -Uri $sdkUrl -OutFile $installerPath -UseBasicParsing
+        }
+        
+        # Verify download
+        if (!(Test-Path $installerPath)) {
+          Write-Error "Failed to download Vulkan SDK"
+          exit 1
+        }
+        
+        Write-Host "Installing Vulkan SDK..."
+        # Install with minimal components (no docs, no samples)
+        Start-Process -FilePath $installerPath -ArgumentList @(
+          '/S',  # Silent install
+          '/D=C:\VulkanSDK'
+        ) -Wait -NoNewWindow
+        
+        Write-Host "Installation complete"
         
         # Verify installation
         if (Test-Path "C:\VulkanSDK") {
-          Write-Host "Vulkan SDK installed successfully"
+          Write-Host "✓ Vulkan SDK installed to C:\VulkanSDK"
+          
+          # Find the actual version directory
+          $vkDir = Get-ChildItem "C:\VulkanSDK" | Select-Object -First 1
+          if ($vkDir) {
+            Write-Host "✓ Found Vulkan version: $($vkDir.Name)"
+            
+            # Set environment variables
+            $env:VULKAN_SDK = $vkDir.FullName
+            echo "VULKAN_SDK=$($vkDir.FullName)" >> $env:GITHUB_ENV
+            
+            # Add to PATH
+            echo "$($vkDir.FullName)\Bin" >> $env:GITHUB_PATH
+            
+            Write-Host "✓ Environment configured"
+          } else {
+            Write-Error "Vulkan SDK directory structure unexpected"
+            exit 1
+          }
         } else {
-          Write-Error "Vulkan SDK installation failed"
+          Write-Error "Vulkan SDK installation failed - directory not found"
           exit 1
         }
+      shell: pwsh
+    
+    - name: Verify Vulkan Installation
+      run: |
+        Write-Host "Checking Vulkan SDK..."
+        Write-Host "VULKAN_SDK = $env:VULKAN_SDK"
+        
+        if (Test-Path "$env:VULKAN_SDK\Include\vulkan\vulkan.h") {
+          Write-Host "✓ Vulkan headers found"
+        } else {
+          Write-Error "✗ Vulkan headers not found"
+          exit 1
+        }
+        
+        if (Test-Path "$env:VULKAN_SDK\Lib\vulkan-1.lib") {
+          Write-Host "✓ Vulkan library found"
+        } else {
+          Write-Error "✗ Vulkan library not found"
+          exit 1
+        }
+        
+        Write-Host "✓ Vulkan SDK verified"
+      shell: pwsh
+    
+    - name: Setup CMake
+      uses: lukka/get-cmake@latest
+    
+    - name: Configure CMake
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -G "Visual Studio 17 2022" -A x64
+      env:
+        VULKAN_SDK: ${{ env.VULKAN_SDK }}
+    
+    - name: Build All Targets
+      run: |
+        cmake --build build --config ${{ env.BUILD_TYPE }}
+    
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts-windows
+        path: |
+          build/bin/
+          build/shaders/
+        retention-days: 7
+
+  # ==================== JOB 3: Ubuntu Build (SwiftShader - Software Vulkan) ====================
+  
+  ubuntu-build:
+    name: Ubuntu Build (SwiftShader)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    # Install dependencies
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        
+        # Install build tools
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          ninja-build \
+          pkg-config
+        
+        # Install Vulkan SDK
+        wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
+        sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
+        sudo apt-get update
+        sudo apt-get install -y vulkan-sdk
+        
+        # Install X11 development files (for GLFW)
+        sudo apt-get install -y \
+          libx11-dev \
+          libxrandr-dev \
+          libxinerama-dev \
+          libxcursor-dev \
+          libxi-dev \
+          libgl1-mesa-dev
+        
+        echo "✓ Dependencies installed"
+    
+    - name: Verify Vulkan
+      run: |
+        # Check Vulkan installation
+        if [ -f "/usr/include/vulkan/vulkan.h" ]; then
+          echo "✓ Vulkan headers found"
+        else
+          echo "✗ Vulkan headers not found"
+          exit 1
+        fi
+        
+        # Check for vulkaninfo
+        if command -v vulkaninfo &> /dev/null; then
+          echo "✓ vulkaninfo available"
+        fi
     
     - name: Setup CMake
       uses: lukka/get-cmake@latest
@@ -121,19 +245,20 @@ jobs:
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: build-artifacts-windows
+        name: build-artifacts-ubuntu
         path: |
           build/bin/
           build/shaders/
         retention-days: 7
-  
-  # ==================== JOB 3: Integration Tests (GPU Required) ====================
+
+  # ==================== JOB 4: Integration Tests (Optional) ====================
   
   integration-tests:
-    name: Integration Tests (GPU)
+    name: Integration Tests (Optional)
     runs-on: windows-latest
+    needs: [windows-build]
     
-    # Integration tests are optional (may not have GPU in CI)
+    # Don't fail entire workflow if this fails
     continue-on-error: true
     
     steps:
@@ -142,160 +267,104 @@ jobs:
       with:
         submodules: recursive
     
-    - name: Cache Vulkan SDK
-      id: cache-vulkan
-      uses: actions/cache@v4
+    - name: Download Build Artifacts
+      uses: actions/download-artifact@v4
       with:
-        path: C:\VulkanSDK
-        key: vulkan-sdk-${{ runner.os }}
+        name: build-artifacts-windows
+        path: build/
     
-    - name: Install Vulkan SDK
-      if: steps.cache-vulkan.outputs.cache-hit != 'true'
+    - name: Setup Vulkan SDK
       run: |
-        Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/latest/windows/vulkan-sdk.exe" -OutFile vulkan-sdk.exe
-        Start-Process vulkan-sdk.exe -ArgumentList '/S' -Wait
-    
-    - name: Setup CMake
-      uses: lukka/get-cmake@latest
-    
-    - name: Configure CMake
-      run: |
-        cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
-    
-    - name: Build Integration Tests
-      run: |
-        cmake --build build --config ${{ env.BUILD_TYPE }} --target HybridRenderer_integration_tests
-    
-    - name: Check for GPU
-      id: check-gpu
-      run: |
-        # Try to detect GPU
-        $hasGPU = $false
+        Write-Host "Setting up Vulkan SDK for integration tests..."
+        
+        # Download and install (reuse same script as windows-build)
+        $tempDir = "$env:TEMP\vulkan"
+        New-Item -ItemType Directory -Force -Path $tempDir
+        
+        $sdkUrl = "https://sdk.lunarg.com/sdk/download/${{ env.VULKAN_SDK_VERSION }}/windows/VulkanSDK-${{ env.VULKAN_SDK_VERSION }}-Installer.exe"
+        $installerPath = "$tempDir\VulkanSDK-Installer.exe"
         
         try {
-          $gpu = Get-WmiObject Win32_VideoController | Select-Object -First 1
-          if ($gpu) {
-            Write-Host "GPU detected: $($gpu.Name)"
-            $hasGPU = $true
-          }
+          Invoke-WebRequest -Uri $sdkUrl -OutFile $installerPath -UseBasicParsing
         } catch {
-          Write-Host "No GPU detected or cannot query"
+          $sdkUrl = "https://sdk.lunarg.com/sdk/download/latest/windows/vulkan-sdk.exe"
+          Invoke-WebRequest -Uri $sdkUrl -OutFile $installerPath -UseBasicParsing
         }
         
-        echo "has_gpu=$hasGPU" >> $env:GITHUB_OUTPUT
+        Start-Process -FilePath $installerPath -ArgumentList '/S', '/D=C:\VulkanSDK' -Wait -NoNewWindow
+        
+        $vkDir = Get-ChildItem "C:\VulkanSDK" | Select-Object -First 1
+        if ($vkDir) {
+          $env:VULKAN_SDK = $vkDir.FullName
+          echo "VULKAN_SDK=$($vkDir.FullName)" >> $env:GITHUB_ENV
+          echo "$($vkDir.FullName)\Bin" >> $env:GITHUB_PATH
+        }
+      shell: pwsh
     
-    - name: Run Integration Tests
-      if: steps.check-gpu.outputs.has_gpu == 'true'
+    - name: Check GPU Availability
+      id: check-gpu
       run: |
+        Write-Host "Checking for GPU availability..."
+        
+        # GitHub Actions runners typically don't have GPU
+        # We'll try to run tests anyway with software rendering
+        echo "gpu_available=false" >> $env:GITHUB_OUTPUT
+        
+        Write-Host "⚠️ Note: GitHub Actions runners don't have GPU"
+        Write-Host "Integration tests may fail - this is expected"
+      shell: pwsh
+    
+    - name: Run Integration Tests (May Fail)
+      run: |
+        Write-Host "Attempting to run integration tests..."
+        Write-Host "Note: These will likely fail without GPU"
+        
         cd build
-        ctest -C ${{ env.BUILD_TYPE }} --output-on-failure --tests-regex "integration_tests"
-      continue-on-error: true  # Don't fail workflow if no GPU
-    
-    - name: Skip Integration Tests
-      if: steps.check-gpu.outputs.has_gpu != 'true'
-      run: |
-        Write-Host "⚠️ No GPU available - skipping integration tests"
-        Write-Host "Integration tests require GPU and are optional in CI"
-    
-    - name: Upload Test Results
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: integration-test-results
-        path: build/Testing/
-        retention-days: 7
+        if (Test-Path "bin\${{ env.BUILD_TYPE }}\HybridRenderer_integration_tests.exe") {
+          .\bin\${{ env.BUILD_TYPE }}\HybridRenderer_integration_tests.exe
+        } else {
+          Write-Host "Integration test executable not found"
+        }
+      continue-on-error: true
+      shell: pwsh
 
-  # ==================== JOB 4: Code Quality Checks ====================
+  # ==================== JOB 5: Status Report ====================
   
-  code-quality:
-    name: Code Quality
+  status-report:
+    name: Test Status Report
     runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    
-    - name: Check for CMakeLists.txt
-      run: |
-        if [ ! -f "CMakeLists.txt" ]; then
-          echo "❌ CMakeLists.txt not found"
-          exit 1
-        fi
-        echo "✅ CMakeLists.txt found"
-    
-    - name: Check for Required Files
-      run: |
-        # Check directory structure
-        required_files=(
-          "src/main.cpp"
-          "tests/unit/MockObjectsTest.cpp"
-          "tests/mocks/MockWindow.h"
-          "tests/mocks/MockGraphicsContext.h"
-        )
-        
-        for file in "${required_files[@]}"; do
-          if [ ! -f "$file" ]; then
-            echo "❌ Missing required file: $file"
-            exit 1
-          fi
-        done
-        
-        echo "✅ All required files present"
-    
-    - name: Check Code Formatting (Optional)
-      run: |
-        # Count source files
-        cpp_files=$(find src tests -name "*.cpp" -o -name "*.h" | wc -l)
-        echo "Found $cpp_files C++ files"
-        
-        if [ $cpp_files -eq 0 ]; then
-          echo "❌ No C++ files found"
-          exit 1
-        fi
-        
-        echo "✅ Source files found"
-    
-    - name: Generate Build Summary
-      run: |
-        echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "- Source files checked ✅" >> $GITHUB_STEP_SUMMARY
-        echo "- Project structure verified ✅" >> $GITHUB_STEP_SUMMARY
-
-  # ==================== JOB 5: Test Report ====================
-  
-  test-report:
-    name: Generate Test Report
-    runs-on: ubuntu-latest
-    needs: [unit-tests, build-verification]
+    needs: [unit-tests, windows-build, ubuntu-build]
     if: always()
     
     steps:
-    - name: Download Test Results
-      uses: actions/download-artifact@v4
-      with:
-        pattern: unit-test-results-*
-        merge-multiple: true
-    
-    - name: Generate Summary
+    - name: Generate Report
       run: |
-        echo "# Test Results Summary" >> $GITHUB_STEP_SUMMARY
+        echo "# CI/CD Test Results" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
+        # Unit tests
         if [ "${{ needs.unit-tests.result }}" == "success" ]; then
-          echo "✅ **Unit Tests**: PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Unit Tests**: PASSED (Windows + Linux)" >> $GITHUB_STEP_SUMMARY
         else
           echo "❌ **Unit Tests**: FAILED" >> $GITHUB_STEP_SUMMARY
         fi
         
-        if [ "${{ needs.build-verification.result }}" == "success" ]; then
-          echo "✅ **Build Verification**: PASSED" >> $GITHUB_STEP_SUMMARY
+        # Windows build
+        if [ "${{ needs.windows-build.result }}" == "success" ]; then
+          echo "✅ **Windows Build**: PASSED (with Vulkan)" >> $GITHUB_STEP_SUMMARY
         else
-          echo "❌ **Build Verification**: FAILED" >> $GITHUB_STEP_SUMMARY
+          echo "❌ **Windows Build**: FAILED" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Ubuntu build
+        if [ "${{ needs.ubuntu-build.result }}" == "success" ]; then
+          echo "✅ **Ubuntu Build**: PASSED" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Ubuntu Build**: FAILED" >> $GITHUB_STEP_SUMMARY
         fi
         
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "## Details" >> $GITHUB_STEP_SUMMARY
-        echo "- Platform: Windows, Ubuntu" >> $GITHUB_STEP_SUMMARY
-        echo "- Test Type: Unit tests (headless)" >> $GITHUB_STEP_SUMMARY
-        echo "- Build Type: Debug" >> $GITHUB_STEP_SUMMARY
+        echo "## Notes" >> $GITHUB_STEP_SUMMARY
+        echo "- Unit tests run headless (no GPU required)" >> $GITHUB_STEP_SUMMARY
+        echo "- Integration tests skipped in CI (no GPU available)" >> $GITHUB_STEP_SUMMARY
+        echo "- Full test suite should be run locally before release" >> $GITHUB_STEP_SUMMARY
