@@ -45,20 +45,33 @@ jobs:
       run: .\build\bin\Debug\HybridRenderer_unit_tests.exe
       timeout-minutes: 2
 
-  unit-tests-linux:
+ unit-tests-linux:
     name: Unit Tests (Linux)
     runs-on: ubuntu-latest
     
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-      timeout-minutes: 5
     
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libgl1-mesa-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
-      timeout-minutes: 5
+        
+        # Install X11 dependencies
+        sudo apt-get install -y \
+          libgl1-mesa-dev \
+          libxrandr-dev \
+          libxinerama-dev \
+          libxcursor-dev \
+          libxi-dev
+        
+        # Install Wayland dependencies (for GLFW)
+        sudo apt-get install -y \
+          libwayland-dev \
+          wayland-protocols \
+          libxkbcommon-dev
+        
+        echo "✓ Dependencies installed"
     
     - name: Verify dependencies
       run: |
@@ -72,20 +85,14 @@ jobs:
         fi
         echo "✓ Dependencies verified"
     
-    - name: Check CMake version
-      run: cmake --version
-    
     - name: Configure
       run: cmake -B build -DCMAKE_BUILD_TYPE=Debug
-      timeout-minutes: 5
     
-    - name: Build
+    - name: Build Unit Tests
       run: cmake --build build --config Debug --target HybridRenderer_unit_tests
-      timeout-minutes: 10
     
     - name: Run Tests
       run: ./build/bin/Debug/HybridRenderer_unit_tests
-      timeout-minutes: 2
 
   status:
     name: Status
