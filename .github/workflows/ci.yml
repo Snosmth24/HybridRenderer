@@ -39,7 +39,9 @@ jobs:
       timeout-minutes: 10
     
     - name: Run Tests
-      run: .\build\bin\Debug\HybridRenderer_unit_tests.exe
+      run: |
+        cd build
+        ctest -C Debug --output-on-failure --verbose
       timeout-minutes: 2
 
   unit-tests-linux:
@@ -84,8 +86,18 @@ jobs:
       run: cmake --build build --config Debug --target HybridRenderer_unit_tests -j 4
       timeout-minutes: 10
     
+    - name: List build artifacts (debug)
+      run: |
+        echo "Contents of build/bin:"
+        ls -la build/bin/ || echo "build/bin does not exist"
+        echo ""
+        echo "Searching for test executable:"
+        find build -name "*unit_tests*" -type f
+    
     - name: Run Tests
-      run: ./build/bin/Debug/HybridRenderer_unit_tests
+      run: |
+        cd build
+        ctest --output-on-failure --verbose
       timeout-minutes: 2
 
   status:
@@ -115,7 +127,8 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "---" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Build Configuration:**" >> $GITHUB_STEP_SUMMARY
-        echo "- Unit tests only (headless, no GPU)" >> $GITHUB_STEP_SUMMARY
-        echo "- GLFW with X11 on Linux" >> $GITHUB_STEP_SUMMARY
-        echo "- 49 unit tests" >> $GITHUB_STEP_SUMMARY
+        echo "**Details:**" >> $GITHUB_STEP_SUMMARY
+        echo "- 49 unit tests (headless, no GPU)" >> $GITHUB_STEP_SUMMARY
+        echo "- Tested on Windows and Linux" >> $GITHUB_STEP_SUMMARY
+        echo "- Build time: ~2 minutes" >> $GITHUB_STEP_SUMMARY
+        echo "- Test time: <1 second" >> $GITHUB_STEP_SUMMARY
