@@ -38,46 +38,55 @@ message(STATUS "Google Test added successfully")
 # Enable testing
 enable_testing()
 
-# Find shader compiler
+# Find shader compiler (only needed if building Vulkan targets)
 find_program(GLSL_VALIDATOR glslc HINTS 
     $ENV{VULKAN_SDK}/Bin
     $ENV{VULKAN_SDK}/bin
 )
 
 if(NOT GLSL_VALIDATOR)
-    message(FATAL_ERROR "glslc not found! Make sure Vulkan SDK is installed.")
+    message(WARNING "glslc not found - shader compilation disabled")
+    set(BUILD_SHADERS OFF)
+else()
+    message(STATUS "glslc found: ${GLSL_VALIDATOR}")
+    set(BUILD_SHADERS ON)
 endif()
 
-message(STATUS "glslc found: ${GLSL_VALIDATOR}")
 
-# Shader compilation
-set(SHADER_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
-set(SHADER_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+# Shader compilation (only if glslc available)
+if(BUILD_SHADERS AND BUILD_VULKAN_TARGETS)
+    set(SHADER_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
+    set(SHADER_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/shaders)
 
-file(MAKE_DIRECTORY ${SHADER_BINARY_DIR})
+    file(MAKE_DIRECTORY ${SHADER_BINARY_DIR})
 
-# Compile vertex shader
-add_custom_command(
-    OUTPUT ${SHADER_BINARY_DIR}/triangle.vert.spv
-    COMMAND ${GLSL_VALIDATOR} ${SHADER_SOURCE_DIR}/triangle.vert -o ${SHADER_BINARY_DIR}/triangle.vert.spv
-    DEPENDS ${SHADER_SOURCE_DIR}/triangle.vert
-    COMMENT "Compiling vertex shader"
-)
+    # Compile vertex shader
+    add_custom_command(
+        OUTPUT ${SHADER_BINARY_DIR}/triangle.vert.spv
+        COMMAND ${GLSL_VALIDATOR} ${SHADER_SOURCE_DIR}/triangle.vert -o ${SHADER_BINARY_DIR}/triangle.vert.spv
+        DEPENDS ${SHADER_SOURCE_DIR}/triangle.vert
+        COMMENT "Compiling vertex shader"
+    )
 
-# Compile fragment shader
-add_custom_command(
-    OUTPUT ${SHADER_BINARY_DIR}/triangle.frag.spv
-    COMMAND ${GLSL_VALIDATOR} ${SHADER_SOURCE_DIR}/triangle.frag -o ${SHADER_BINARY_DIR}/triangle.frag.spv
-    DEPENDS ${SHADER_SOURCE_DIR}/triangle.frag
-    COMMENT "Compiling fragment shader"
-)
+    # Compile fragment shader
+    add_custom_command(
+        OUTPUT ${SHADER_BINARY_DIR}/triangle.frag.spv
+        COMMAND ${GLSL_VALIDATOR} ${SHADER_SOURCE_DIR}/triangle.frag -o ${SHADER_BINARY_DIR}/triangle.frag.spv
+        DEPENDS ${SHADER_SOURCE_DIR}/triangle.frag
+        COMMENT "Compiling fragment shader"
+    )
 
-# Create shader target
-add_custom_target(Shaders ALL
-    DEPENDS 
-        ${SHADER_BINARY_DIR}/triangle.vert.spv
-        ${SHADER_BINARY_DIR}/triangle.frag.spv
-)
+    # Create shader target
+    add_custom_target(Shaders ALL
+        DEPENDS 
+            ${SHADER_BINARY_DIR}/triangle.vert.spv
+            ${SHADER_BINARY_DIR}/triangle.frag.spv
+    )
+    
+    message(STATUS "✓ Shader compilation enabled")
+else()
+    message(STATUS "⚠ Shader compilation disabled (glslc not available)")
+endif()
 
 # Source files organized by component
 set(INTERFACE_HEADERS
