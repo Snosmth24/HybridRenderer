@@ -2,7 +2,7 @@
 #include "../../src/renderer/Renderer.h"
 #include "../mocks/MockWindow.h"
 #include "../mocks/MockGraphicsContext.h"
-#include "../../src/utils/Logger.h"
+#include "utils/Logger.h"
 #include <chrono>
 
 using std::chrono::high_resolution_clock;  
