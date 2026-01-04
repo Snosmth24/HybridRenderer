@@ -2,7 +2,7 @@
 
 #include <iostream>
 #include <string>
-
+//
 enum class LogLevel {
     Silent,   // No output
     Minimal,  // Errors only
