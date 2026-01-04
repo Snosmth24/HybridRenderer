@@ -85,9 +85,9 @@ Time: ~2 minutes
 ## Documentation
 
 - [Test Results](docs/test_results.md) - Detailed test metrics
-- [Bugs Found](docs/bugs_found.md) - **6 bugs documented**
+- [Bugs Found](docs/bugs_found.md) - 6 bugs documented and fixed
+- [Installation (Linux)](docs/installation_linux.md) - Linux setup guide
 - [Contributing](CONTRIBUTING.md) - Development workflow
-- [Installation (Linux)](docs/installation_linux.md)
 
 ## Running Tests
 
@@ -148,6 +148,4 @@ MIT License - See LICENSE file
 
 Built to demonstrate QA engineering skills for NVIDIA GPU Software QA Engineer application.
 
-**Contact:** [Your Email]  
-**LinkedIn:** [Your LinkedIn]  
-**Portfolio:** [Your Portfolio]
+**Contact:** [Tamiragov24@gmail.com]  
