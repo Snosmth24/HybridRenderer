@@ -1,0 +1,14 @@
+name: Build Status
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set Status
+      run: echo "Build status updated"

@@ -1,12 +1,12 @@
 @echo off
-echo ======================================
-echo    Running Full Test Suite (GPU)
-echo ======================================
+echo ========================================
+echo   Full Test Suite (Unit + Integration)
+echo ========================================
 echo.
 
 cd build
 
-REM Build both test executables
+echo Building all tests...
 cmake --build . --config Debug --target HybridRenderer_unit_tests
 cmake --build . --config Debug --target HybridRenderer_integration_tests
 
@@ -16,28 +16,26 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM Run unit tests
 echo.
-echo ======================================
-echo    Unit Tests (Headless)
-echo ======================================
+echo ========================================
+echo   Running Unit Tests (Fast)
+echo ========================================
 bin\Debug\HybridRenderer_unit_tests.exe
 
 set unit_result=%errorlevel%
 
-REM Run integration tests
 echo.
-echo ======================================
-echo    Integration Tests (GPU)
-echo ======================================
+echo ========================================
+echo   Running Integration Tests (Slow)
+echo ========================================
 bin\Debug\HybridRenderer_integration_tests.exe
 
 set integration_result=%errorlevel%
 
 echo.
-echo ======================================
-echo    Test Summary
-echo ======================================
+echo ========================================
+echo   Test Results
+echo ========================================
 
 if %unit_result% equ 0 (
     echo Unit Tests:        [PASSED]

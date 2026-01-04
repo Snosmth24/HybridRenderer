@@ -9,6 +9,21 @@
 #include <limits>
 #include <cstring>
 
+#ifdef VK_USE_PLATFORM_WIN32_KHR
+    // Windows-specific
+#endif
+
+#ifdef VK_USE_PLATFORM_XLIB_KHR
+    // Linux X11
+#endif
+
+#ifdef VK_USE_PLATFORM_WAYLAND_KHR
+    // Linux Wayland
+#endif
+
+#ifdef VK_USE_PLATFORM_MACOS_MVK
+    // macOS via MoltenVK
+#endif
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>

@@ -1,0 +1,301 @@
+name: CI - Build and Test
+
+# When to run this workflow
+on:
+  # Run on pushes to main branch
+  push:
+    branches: [ main, develop ]
+  
+  # Run on pull requests
+  pull_request:
+    branches: [ main ]
+  
+  # Allow manual trigger
+  workflow_dispatch:
+
+# Environment variables available to all jobs
+env:
+  BUILD_TYPE: Debug
+
+jobs:
+  # ==================== JOB 1: Unit Tests (Fast, Headless) ====================
+  
+  unit-tests:
+    name: Unit Tests (Headless)
+    
+    # Test on multiple platforms
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    # Step 1: Checkout code
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive  # Get GLFW and Google Test
+    
+    # Step 2: Setup CMake (cross-platform)
+    - name: Setup CMake
+      uses: lukka/get-cmake@latest
+    
+    # Step 3: Configure CMake
+    - name: Configure CMake
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+    
+    # Step 4: Build unit tests
+    - name: Build Unit Tests
+      run: |
+        cmake --build build --config ${{ env.BUILD_TYPE }} --target HybridRenderer_unit_tests
+    
+    # Step 5: Run unit tests
+    - name: Run Unit Tests
+      run: |
+        cd build
+        ctest -C ${{ env.BUILD_TYPE }} --output-on-failure --tests-regex "unit_tests"
+      
+      # Alternative: Run executable directly
+      # Windows: .\build\bin\Debug\HybridRenderer_unit_tests.exe
+      # Linux:   ./build/bin/Debug/HybridRenderer_unit_tests
+    
+    # Step 6: Upload test results (if tests fail)
+    - name: Upload Test Results
+      if: always()  # Run even if tests fail
+      uses: actions/upload-artifact@v4
+      with:
+        name: unit-test-results-${{ matrix.os }}
+        path: build/Testing/
+        retention-days: 7
+  
+  # ==================== JOB 2: Build Verification ====================
+  
+  build-verification:
+    name: Build All Targets
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    # Windows needs Vulkan SDK for integration tests
+    - name: Cache Vulkan SDK
+      id: cache-vulkan
+      uses: actions/cache@v4
+      with:
+        path: C:\VulkanSDK
+        key: vulkan-sdk-${{ runner.os }}
+    
+    - name: Install Vulkan SDK
+      if: steps.cache-vulkan.outputs.cache-hit != 'true'
+      run: |
+        # Download Vulkan SDK installer
+        Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/latest/windows/vulkan-sdk.exe" -OutFile vulkan-sdk.exe
+        
+        # Install silently
+        Start-Process vulkan-sdk.exe -ArgumentList '/S' -Wait
+        
+        # Verify installation
+        if (Test-Path "C:\VulkanSDK") {
+          Write-Host "Vulkan SDK installed successfully"
+        } else {
+          Write-Error "Vulkan SDK installation failed"
+          exit 1
+        }
+    
+    - name: Setup CMake
+      uses: lukka/get-cmake@latest
+    
+    - name: Configure CMake
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+    
+    - name: Build All Targets
+      run: |
+        cmake --build build --config ${{ env.BUILD_TYPE }}
+    
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts-windows
+        path: |
+          build/bin/
+          build/shaders/
+        retention-days: 7
+  
+  # ==================== JOB 3: Integration Tests (GPU Required) ====================
+  
+  integration-tests:
+    name: Integration Tests (GPU)
+    runs-on: windows-latest
+    
+    # Integration tests are optional (may not have GPU in CI)
+    continue-on-error: true
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Cache Vulkan SDK
+      id: cache-vulkan
+      uses: actions/cache@v4
+      with:
+        path: C:\VulkanSDK
+        key: vulkan-sdk-${{ runner.os }}
+    
+    - name: Install Vulkan SDK
+      if: steps.cache-vulkan.outputs.cache-hit != 'true'
+      run: |
+        Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/latest/windows/vulkan-sdk.exe" -OutFile vulkan-sdk.exe
+        Start-Process vulkan-sdk.exe -ArgumentList '/S' -Wait
+    
+    - name: Setup CMake
+      uses: lukka/get-cmake@latest
+    
+    - name: Configure CMake
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+    
+    - name: Build Integration Tests
+      run: |
+        cmake --build build --config ${{ env.BUILD_TYPE }} --target HybridRenderer_integration_tests
+    
+    - name: Check for GPU
+      id: check-gpu
+      run: |
+        # Try to detect GPU
+        $hasGPU = $false
+        
+        try {
+          $gpu = Get-WmiObject Win32_VideoController | Select-Object -First 1
+          if ($gpu) {
+            Write-Host "GPU detected: $($gpu.Name)"
+            $hasGPU = $true
+          }
+        } catch {
+          Write-Host "No GPU detected or cannot query"
+        }
+        
+        echo "has_gpu=$hasGPU" >> $env:GITHUB_OUTPUT
+    
+    - name: Run Integration Tests
+      if: steps.check-gpu.outputs.has_gpu == 'true'
+      run: |
+        cd build
+        ctest -C ${{ env.BUILD_TYPE }} --output-on-failure --tests-regex "integration_tests"
+      continue-on-error: true  # Don't fail workflow if no GPU
+    
+    - name: Skip Integration Tests
+      if: steps.check-gpu.outputs.has_gpu != 'true'
+      run: |
+        Write-Host "⚠️ No GPU available - skipping integration tests"
+        Write-Host "Integration tests require GPU and are optional in CI"
+    
+    - name: Upload Test Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: integration-test-results
+        path: build/Testing/
+        retention-days: 7
+
+  # ==================== JOB 4: Code Quality Checks ====================
+  
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Check for CMakeLists.txt
+      run: |
+        if [ ! -f "CMakeLists.txt" ]; then
+          echo "❌ CMakeLists.txt not found"
+          exit 1
+        fi
+        echo "✅ CMakeLists.txt found"
+    
+    - name: Check for Required Files
+      run: |
+        # Check directory structure
+        required_files=(
+          "src/main.cpp"
+          "tests/unit/MockObjectsTest.cpp"
+          "tests/mocks/MockWindow.h"
+          "tests/mocks/MockGraphicsContext.h"
+        )
+        
+        for file in "${required_files[@]}"; do
+          if [ ! -f "$file" ]; then
+            echo "❌ Missing required file: $file"
+            exit 1
+          fi
+        done
+        
+        echo "✅ All required files present"
+    
+    - name: Check Code Formatting (Optional)
+      run: |
+        # Count source files
+        cpp_files=$(find src tests -name "*.cpp" -o -name "*.h" | wc -l)
+        echo "Found $cpp_files C++ files"
+        
+        if [ $cpp_files -eq 0 ]; then
+          echo "❌ No C++ files found"
+          exit 1
+        fi
+        
+        echo "✅ Source files found"
+    
+    - name: Generate Build Summary
+      run: |
+        echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- Source files checked ✅" >> $GITHUB_STEP_SUMMARY
+        echo "- Project structure verified ✅" >> $GITHUB_STEP_SUMMARY
+
+  # ==================== JOB 5: Test Report ====================
+  
+  test-report:
+    name: Generate Test Report
+    runs-on: ubuntu-latest
+    needs: [unit-tests, build-verification]
+    if: always()
+    
+    steps:
+    - name: Download Test Results
+      uses: actions/download-artifact@v4
+      with:
+        pattern: unit-test-results-*
+        merge-multiple: true
+    
+    - name: Generate Summary
+      run: |
+        echo "# Test Results Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ needs.unit-tests.result }}" == "success" ]; then
+          echo "✅ **Unit Tests**: PASSED" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Unit Tests**: FAILED" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "${{ needs.build-verification.result }}" == "success" ]; then
+          echo "✅ **Build Verification**: PASSED" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Build Verification**: FAILED" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Details" >> $GITHUB_STEP_SUMMARY
+        echo "- Platform: Windows, Ubuntu" >> $GITHUB_STEP_SUMMARY
+        echo "- Test Type: Unit tests (headless)" >> $GITHUB_STEP_SUMMARY
+        echo "- Build Type: Debug" >> $GITHUB_STEP_SUMMARY

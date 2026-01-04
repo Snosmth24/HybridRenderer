@@ -104,6 +104,7 @@ add_executable(HybridRenderer_unit_tests
 	
 	# Unit tests
     tests/unit/MockObjectsTest.cpp
+	tests/unit/RendererUnitTest.cpp
 	
 	# Mocks (header-only, but list for IDE)
     tests/mocks/MockWindow.h
@@ -132,7 +133,49 @@ gtest_discover_tests(HybridRenderer_unit_tests)
 
 message(STATUS "Unit tests configured (headless, no GPU required)")
 
+# ==================== INTEGRATION TESTS (GPU Required) ====================
 
+add_executable(HybridRenderer_integration_tests
+    # Test main
+    tests/main_test.cpp
+    
+    # Integration tests (slow, need GPU)
+    tests/integration/WindowIntegrationTest.cpp
+    tests/integration/VulkanContextIntegrationTest.cpp
+    
+    # Real implementations
+    ${VULKAN_SOURCES}
+    ${PLATFORM_SOURCES}
+    ${RENDERER_SOURCES}
+)
+
+target_include_directories(HybridRenderer_integration_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${Vulkan_INCLUDE_DIRS}
+)
+
+target_link_libraries(HybridRenderer_integration_tests PRIVATE
+    gtest
+    gtest_main
+    Vulkan::Vulkan
+    glfw
+)
+
+# Register with CTest
+gtest_discover_tests(HybridRenderer_integration_tests)
+
+message(STATUS "✓ Integration tests configured (requires GPU)")
+
+# ==================== TEST SUMMARY ====================
+
+message(STATUS "")
+message(STATUS "=== Test Configuration ===")
+message(STATUS "Unit tests:        Fast (<20ms), headless, no GPU")
+message(STATUS "Integration tests: Slow (3-5s), requires GPU and drivers")
+message(STATUS "")
+message(STATUS "Quick test: bin/Debug/HybridRenderer_unit_tests.exe")
+message(STATUS "Full test:  bin/Debug/HybridRenderer_integration_tests.exe")
+message(STATUS "==========================")
 
 
 
@@ -161,88 +204,70 @@ target_link_libraries(HybridRenderer PRIVATE
 # Add shader dependency
 add_dependencies(HybridRenderer Shaders)
 
-# Windows-specific settings
+# ==================== PLATFORM-SPECIFIC SETTINGS ====================
+
 if(WIN32)
+    message(STATUS "Platform: Windows")
+    
     target_compile_definitions(HybridRenderer PRIVATE
         VK_USE_PLATFORM_WIN32_KHR
         NOMINMAX
         WIN32_LEAN_AND_MEAN
     )
-endif()
-# ==================== INTEGRATION TESTS (Require GPU) ====================
-
-add_executable(HybridRenderer_integration_tests
-    # Test main
-    tests/main_test.cpp
     
-    # Integration tests (need GPU)
-    tests/WindowTest.cpp
-    tests/VulkanContextTest.cpp
-    
-    # Real implementations
-    ${VULKAN_SOURCES}
-    ${PLATFORM_SOURCES}
-    ${RENDERER_SOURCES}
-)
-
-target_include_directories(HybridRenderer_integration_tests PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${Vulkan_INCLUDE_DIRS}
-)
-
-target_link_libraries(HybridRenderer_integration_tests PRIVATE
-    gtest
-    gtest_main
-    Vulkan::Vulkan
-    glfw
-)
-
-if(WIN32)
     target_compile_definitions(HybridRenderer_integration_tests PRIVATE
         VK_USE_PLATFORM_WIN32_KHR
         NOMINMAX
         WIN32_LEAN_AND_MEAN
     )
-endif()
-
-# Register integration tests
-gtest_discover_tests(HybridRenderer_integration_tests)
-
-add_executable(HybridRenderer_tests
-    # Test main
-    tests/main_test.cpp  # ← ADD THIS
     
-    # Test files
-    tests/WindowTest.cpp
-    tests/VulkanContextTest.cpp
+elseif(APPLE)
+    message(STATUS "Platform: macOS")
     
-    # Source files
-    ${VULKAN_SOURCES}
-    ${PLATFORM_SOURCES}
-    ${RENDERER_SOURCES}
-)
-
-target_include_directories(HybridRenderer_tests PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${Vulkan_INCLUDE_DIRS}
-)
-
-target_link_libraries(HybridRenderer_tests PRIVATE
-    gtest
-    # gtest_main  # ← REMOVE THIS (we have our own main now)
-    Vulkan::Vulkan
-    glfw
-)
-
-# Windows-specific settings for tests
-if(WIN32)
-    target_compile_definitions(HybridRenderer_tests PRIVATE
-        VK_USE_PLATFORM_WIN32_KHR
-        NOMINMAX
-        WIN32_LEAN_AND_MEAN
+    # macOS uses MoltenVK (Vulkan over Metal)
+    target_compile_definitions(HybridRenderer PRIVATE
+        VK_USE_PLATFORM_MACOS_MVK
+        VK_USE_PLATFORM_METAL_EXT
     )
+    
+    target_compile_definitions(HybridRenderer_integration_tests PRIVATE
+        VK_USE_PLATFORM_MACOS_MVK
+        VK_USE_PLATFORM_METAL_EXT
+    )
+    
+    # macOS-specific settings
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+    
+elseif(UNIX)
+    message(STATUS "Platform: Linux")
+    
+    # Linux can use X11 or Wayland
+    # Check which is available
+    find_package(X11)
+    
+    if(X11_FOUND)
+        message(STATUS "  Using X11 for window management")
+        target_compile_definitions(HybridRenderer PRIVATE
+            VK_USE_PLATFORM_XLIB_KHR
+        )
+        target_compile_definitions(HybridRenderer_integration_tests PRIVATE
+            VK_USE_PLATFORM_XLIB_KHR
+        )
+        target_link_libraries(HybridRenderer PRIVATE X11)
+        target_link_libraries(HybridRenderer_integration_tests PRIVATE X11)
+    else()
+        message(STATUS "  Using Wayland for window management")
+        target_compile_definitions(HybridRenderer PRIVATE
+            VK_USE_PLATFORM_WAYLAND_KHR
+        )
+        target_compile_definitions(HybridRenderer_integration_tests PRIVATE
+            VK_USE_PLATFORM_WAYLAND_KHR
+        )
+    endif()
+    
+    # Linux-specific settings
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pthread")
+    
 endif()
 
-# Register tests with CTest
-include(GoogleTest)
-gtest_discover_tests(HybridRenderer_tests)
+message(STATUS "")
