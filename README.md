@@ -7,13 +7,13 @@
 [![Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen)](coverage.html)
 
 <!-- Last commit -->
-[![Last Commit](https://img.shields.io/github/last-commit/YOUR_USERNAME/HybridRenderer)](https://github.com/YOUR_USERNAME/HybridRenderer/commits)
+[![Last Commit](https://img.shields.io/github/last-commit/Snosmth24/HybridRenderer)](https://github.com/Snosmth24/HybridRenderer/commits)
 
 <!-- Issues -->
-[![Issues](https://img.shields.io/github/issues/YOUR_USERNAME/HybridRenderer)](https://github.com/YOUR_USERNAME/HybridRenderer/issues)
+[![Issues](https://img.shields.io/github/issues/Snosmth24/HybridRenderer)](https://github.com/Snosmth24/HybridRenderer/issues)
 
 <!-- Stars -->
-[![Stars](https://img.shields.io/github/stars/YOUR_USERNAME/HybridRenderer?style=social)](https://github.com/YOUR_USERNAME/HybridRenderer)
+[![Stars](https://img.shields.io/github/stars/Snosmth24/HybridRenderer?style=social)](https://github.com/Snosmth24/HybridRenderer)
 
 > GPU rendering engine demonstrating **professional QA engineering practices** for NVIDIA application.
 
