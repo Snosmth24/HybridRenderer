@@ -127,30 +127,6 @@ test_full.bat
 ✅ 17 integration tests passed in 3421ms
 ```
 
-## For NVIDIA QA Role
-
-This project demonstrates:
-
-**QA Skills:**
-- Automated test creation and maintenance
-- CI/CD pipeline configuration
-- Cross-platform testing
-- Bug documentation and root cause analysis
-- Performance testing and profiling
-
-**Technical Skills:**
-- Vulkan API knowledge
-- C++17 systems programming
-- CMake build systems
-- Git/GitHub workflows
-- Linux and Windows development
-
-**Mindset:**
-- "How can this break?" thinking
-- Test-first development
-- Attention to edge cases
-- Documentation of findings
-
 ## License
 
 MIT License - See LICENSE file
