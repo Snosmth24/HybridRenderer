@@ -32,7 +32,7 @@ Every commit triggers automated tests on:
 
 ## CI/CD Results
 
-Latest build: ![CI Status](https://github.com/YOUR_USERNAME/HybridRenderer/actions/workflows/ci.yml/badge.svg)
+Latest build: ![CI Status](https://github.com/Snosmth24/HybridRenderer/actions/workflows/ci.yml/badge.svg)
 
 **Build time:** ~2 minutes  
 **Test time:** < 1 second  
