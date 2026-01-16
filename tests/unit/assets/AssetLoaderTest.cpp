@@ -14,11 +14,25 @@ protected:
     }
 };
 
-// RED: This test will fail because AssetLoader doesn't exist yet
 TEST_F(AssetLoaderTest, LoaderCanBeCreated) {
     // ARRANGE & ACT
     // (Done in SetUp)
     
     // ASSERT
     EXPECT_NE(loader, nullptr);
+}
+
+TEST_F(AssetLoaderTest, HasLoadTextureMethod) {
+    // ARRANGE
+    std::string path = "test.png";
+    
+    // ACT
+    Texture* texture = loader->loadTexture(path);
+    
+    // ASSERT
+    // Just test that it returns something (we'll test contents later)
+    EXPECT_NE(texture, nullptr);
+    
+    // Cleanup
+    delete texture;
 }
