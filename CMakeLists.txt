@@ -160,6 +160,7 @@ add_executable(HybridRenderer_unit_tests
     tests/main_test.cpp
     tests/unit/MockObjectsTest.cpp
     tests/unit/RendererUnitTest.cpp
+	tests/unit/assets/AssetLoaderTest.cpp
     ${RENDERER_SOURCES}
 )
 
