@@ -164,16 +164,48 @@ auto start = std::chrono::high_resolution_clock::now();  // ← Fully qualified
 
 ---
 
+## Bug #7: VS fails to read Relative paths
+**Severity:** Minimal  
+**Status:** ✅ Fixed
+
+**Description:**  
+Tests that run from VS IDE, that require paths to textures assets, crash. VS fails to fallow relative 
+paths from imported CMAKE projects. 
+
+**Root Cause:**  
+VS creates a seperate build directory and working Directory from which it maps file paths. 
+
+**Symptoms:**
+```
+Test Crashes
+data pointer: 0000000000000000
+```
+
+**Fix:**
+```
+Use Absolute paths in VS cpp
+std::string path = <path>;
+Texture* texture = loader->loadTexture(path);
+```
+
+**Test Added:** 
+AssetLoaderTest, ShowWorkingDirectory
+AssetLoaderTest, LoaderCanBeCreated
+AssetLoaderTest, HasLoadTextureMethod
+AssetLoaderTest, LoadsCorrectDimensions
+**Lesson:** Run tests from Console
+
 ## Statistics
 
-- **Total bugs found:** 6
+- **Total bugs found:** 7
 - **Critical:** 1
 - **Major:** 2
 - **Medium:** 1
 - **Blockers (CI):** 2
-- **Caught by:** Manual testing (4), CI (2)
-- **Prevention:** Added 66 automated tests
+- **Minimal (CI):** 1
+- **Caught by:** Manual testing (4), CI (3)
+- **Prevention:** Added 69 automated tests
 
 ## QA Takeaway
 
-Every bug found during development is a bug that would have reached users. Automated tests prevent regression of all fixed bugs.
+Most bugs found during development is a bug that would have reached users. Automated tests prevent regression of all fixed bugs.

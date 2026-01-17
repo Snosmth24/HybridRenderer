@@ -103,7 +103,9 @@ set(INTERFACE_HEADERS
 set(RENDERER_SOURCES
     src/renderer/Renderer.h
     src/renderer/Renderer.cpp
-)
+	src/assets/AssetLoader.h
+    src/assets/AssetLoader.cpp
+	)
 
 set(VULKAN_SOURCES
     src/vulkan/VulkanContext.h
@@ -162,6 +164,23 @@ add_executable(HybridRenderer_unit_tests
     tests/unit/RendererUnitTest.cpp
 	tests/unit/assets/AssetLoaderTest.cpp
     ${RENDERER_SOURCES}
+	${ASSET_SOURCES}
+)
+
+# Copy test_assets to build directory after building
+add_custom_command(TARGET HybridRenderer_unit_tests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/test_assets
+        $<TARGET_FILE_DIR:HybridRenderer_unit_tests>/test_assets
+    COMMENT "Copying test_assets to build directory"
+)
+
+# Also copy to project root for Visual Studio
+add_custom_command(TARGET HybridRenderer_unit_tests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/test_assets
+        ${CMAKE_SOURCE_DIR}/test_assets
+    COMMENT "Ensuring test_assets exists in project root"
 )
 
 target_include_directories(HybridRenderer_unit_tests PRIVATE

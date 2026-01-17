@@ -1,25 +1,21 @@
 #pragma once
 #include <string>
+#include <stdexcept>
 
-// Forward declaration
 struct Texture {
     int width = 0;
     int height = 0;
     int channels = 0;
     unsigned char* data = nullptr;
-    
-    ~Texture() {
-        // Don't delete data yet - we'll manage that properly later
-    }
+
+    // Destructor - DECLARED here, IMPLEMENTED in .cpp
+    ~Texture();
 };
 
 class AssetLoader {
 public:
     AssetLoader() = default;
     ~AssetLoader() = default;
-    
-    // Minimal implementation - just return something
-    Texture* loadTexture(const std::string& path) {
-        return new Texture();
-    }
+
+    Texture* loadTexture(const std::string& path);
 };
