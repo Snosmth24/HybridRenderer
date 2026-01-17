@@ -20,23 +20,39 @@ None needed yet.
 **Coverage:** Constructor only
 **Time:** 15 minutes
 
-**Date:** 2025-1-16
-**Time:** 17:39
+## Lesson Learned: Windows Path Separators
 
-### RED (Tests Still Failing)
-AssetLoaderTest.cpp is still failing. After debugging
-found that the test asset png is not loading proporly and
-the test crashes before Evaluation. 
+**Date:** 2025-01-16
 
-### Green (Tests Finally Pass)
-After tring to update Cmakelists and VS to retarget relative
-paths to test assets I eventually changed to absolute paths and VS 
-finally passed the tests. Running the tests from Console works absolutly fine
-with relative paths though. 
+### Issue
+Tests failed with paths copied from Windows File Explorer.
 
-**Status:** ✅ 3 test passing
-**Coverage:** Constructor only
-**Time:** 55 minutes
+### Root Cause
+Windows uses backslash `\` as path separator, but in C++ strings,
+backslash is an escape character.
 
-### REFACTOR
-Fix VS relative path problem. Or just run tests from console only. - Better for Headless. 
+Copying `D:\VS repos\...` creates invalid escape sequences like `\V`.
+
+### Solution
+Always use forward slashes `/` in C++ path strings:
+- Works on Windows, Linux, macOS
+- No escaping needed
+- Cross-platform compatible
+
+### Examples
+```cpp
+// ❌ WRONG (copied from File Explorer)
+"D:\VS repos\HybridRenderer\test_assets\test.png"
+
+// ✅ CORRECT (forward slashes)
+"D:/VS repos/HybridRenderer/test_assets/test.png"
+
+// ✅ ALSO CORRECT (escaped backslashes)
+"D:\\VS repos\\HybridRenderer\\test_assets\\test.png"
+
+// ✅ ALSO CORRECT (raw string literal)
+R"(D:\VS repos\HybridRenderer\test_assets\test.png)"
+```
+
+### Best Practice
+Use `std::filesystem::path` for cross-platform path handling.

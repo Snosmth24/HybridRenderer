@@ -1,62 +1,39 @@
 @echo off
-setlocal
+echo ====================================
+echo Full Rebuild
+echo ====================================
+echo.
 
 cd /d "%~dp0"
 
-echo ======================================
-echo    Hybrid Renderer Full Rebuild
-echo ======================================
-echo.
-
-REM Delete build directory
-if exist "build" (
-    echo Deleting old build directory...
+echo Step 1: Cleaning...
+if exist build (
     rmdir /s /q build
+    echo Build directory deleted.
 )
 
-REM Create new build directory
-echo Creating new build directory...
-mkdir build
-cd build
-
-REM Configure
-echo Configuring CMake...
-cmake .. -G "Visual Studio 17 2022" -A x64
-if errorlevel 1 (
-    echo [ERROR] CMake configuration failed!
-    pause
-    exit /b 1
-)
-
-REM Build Debug
 echo.
-echo Building Debug configuration...
-cmake --build . --config Debug
-if errorlevel 1 (
-    echo [ERROR] Debug build failed!
-    pause
-    exit /b 1
-)
+echo Step 2: Configuring...
+cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug
 
-REM Build Release
-echo.
-echo Building Release configuration...
-cmake --build . --config Release
 if errorlevel 1 (
-    echo [ERROR] Release build failed!
+    echo Configuration failed!
     pause
     exit /b 1
 )
 
 echo.
-echo ======================================
-echo   Full Rebuild Complete!
-echo ======================================
-echo.
-echo Debug Executable:   build\bin\Debug\HybridRenderer.exe
-echo Release Executable: build\bin\Release\HybridRenderer.exe
-echo Debug Tests:        build\bin\Debug\HybridRenderer_tests.exe
-echo Release Tests:      build\bin\Release\HybridRenderer_tests.exe
-echo.
+echo Step 3: Building...
+cmake --build build --config Debug --target HybridRenderer_unit_tests
 
+if errorlevel 1 (
+    echo Build failed!
+    pause
+    exit /b 1
+)
+
+echo.
+echo ====================================
+echo Rebuild complete!
+echo ====================================
 pause

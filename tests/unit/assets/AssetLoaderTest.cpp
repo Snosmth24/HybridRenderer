@@ -29,7 +29,7 @@ TEST_F(AssetLoaderTest, ShowWorkingDirectory) {
         << std::filesystem::current_path() / "HybridRenderer_unit_tests.exe"
         << std::endl;
 }
-
+// ==================== Cycle 3 ====================
 // This test should ALWAYS pass - it doesn't load any files
 TEST_F(AssetLoaderTest, LoaderCanBeCreated) {
     EXPECT_NE(loader, nullptr);
@@ -41,7 +41,7 @@ TEST_F(AssetLoaderTest, HasLoadTextureMethod) {
     std::cout << "Working directory: " << std::filesystem::current_path() << std::endl;
 
     // Check if file exists
-    std::string path = "D:/VS repos/HybridRenderer/test_assets/test_256x256.png";
+    std::string path = "test_assets/test_256x256.png";
     bool exists = std::filesystem::exists(path);
     std::cout << "File exists: " << (exists ? "YES" : "NO") << std::endl;
 
@@ -55,7 +55,7 @@ TEST_F(AssetLoaderTest, HasLoadTextureMethod) {
 }
 
 TEST_F(AssetLoaderTest, LoadsCorrectDimensions) {
-    std::string path = "D:/VS repos/HybridRenderer/test_assets/test_256x256.png";
+    std::string path = "test_assets/test_256x256.png";
     Texture* texture = loader->loadTexture(path);
     ASSERT_NE(texture, nullptr);
     EXPECT_EQ(texture->width, 256);
@@ -63,3 +63,20 @@ TEST_F(AssetLoaderTest, LoadsCorrectDimensions) {
     delete texture;
 }
 
+// ==================== Cycle 4 ====================
+
+TEST_F(AssetLoaderTest, ThrowsExceptionForMissingFile) {
+    // ARRANGE
+    std::string invalidPath = "nonexistent_file.png";
+    
+    // ACT & ASSERT
+    try {
+        loader->loadTexture(invalidPath);
+        FAIL() << "Expected exception to be thrown";
+    } catch (const std::runtime_error& e) {
+        // Verify error message contains the filename
+        std::string errorMsg = e.what();
+        EXPECT_TRUE(errorMsg.find("nonexistent_file.png") != std::string::npos)
+            << "Error message should contain filename. Got: " << errorMsg;
+    }
+}
