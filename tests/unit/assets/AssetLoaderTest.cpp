@@ -80,3 +80,28 @@ TEST_F(AssetLoaderTest, ThrowsExceptionForMissingFile) {
             << "Error message should contain filename. Got: " << errorMsg;
     }
 }
+
+// ==================== Cycle 5 ====================
+
+TEST_F(AssetLoaderTest, LoadsDifferentSizedImages) {
+    // ARRANGE
+    std::string path512 = "test_assets/test_512x512.png";
+    std::string path1024 = "test_assets/test_1024x1024.png";
+    
+    // ACT
+    Texture* tex512 = loader->loadTexture(path512);
+    Texture* tex1024 = loader->loadTexture(path1024);
+    
+    // ASSERT
+    ASSERT_NE(tex512, nullptr);
+    EXPECT_EQ(tex512->width, 512);
+    EXPECT_EQ(tex512->height, 512);
+    
+    ASSERT_NE(tex1024, nullptr);
+    EXPECT_EQ(tex1024->width, 1024);
+    EXPECT_EQ(tex1024->height, 1024);
+    
+    // Cleanup
+    delete tex512;
+    delete tex1024;
+}

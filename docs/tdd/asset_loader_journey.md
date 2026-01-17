@@ -56,3 +56,23 @@ R"(D:\VS repos\HybridRenderer\test_assets\test.png)"
 
 ### Best Practice
 Use `std::filesystem::path` for cross-platform path handling.
+
+## Cycle 4: Error Handling - Missing Files
+
+**Date:** 2025-01-16
+**Time:** [Current time]
+
+### RED (Write Failing Test)
+Created test expecting exception when loading nonexistent file.
+
+### GREEN (Implementation)
+Code already throws `std::runtime_error` when `stbi_load()` fails!
+Test passed immediately.
+
+### REFACTOR
+Enhanced test to verify error message contains filename.
+This ensures helpful error messages for debugging.
+
+**Status:** ✅ 4 tests passing
+**Time:** 10 minutes
+**Insight:** Sometimes TDD reveals you already handled the case!
