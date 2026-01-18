@@ -1,32 +1,23 @@
-#!/bin/bash
+@echo off
+echo ====================================
+echo Quick Test (AssetLoader Only)
+echo ====================================
+echo.
 
-echo "========================================"
-echo "   Quick Test (Unit Tests - No GPU)"
-echo "========================================"
-echo ""
+cd /d "%~dp0"
 
-cd build
+echo Building...
+cmake --build out/build/x64-Debug --config Debug --target HybridRenderer_unit_tests
 
-echo "Building unit tests..."
-cmake --build . --config Debug --target HybridRenderer_unit_tests
+if errorlevel 1 (
+    echo Build failed!
+    pause
+    exit /b 1
+)
 
-if [ $? -ne 0 ]; then
-    echo "[ERROR] Build failed!"
-    exit 1
-fi
+echo.
+echo Running AssetLoader tests...
+echo.
+out\build\x64-Debug\bin\Debug\HybridRenderer_unit_tests.exe --gtest_filter=AssetLoaderTest.* --gtest_color=yes
 
-echo ""
-echo "Running unit tests (headless, fast)..."
-echo ""
-
-./bin/Debug/HybridRenderer_unit_tests
-
-if [ $? -ne 0 ]; then
-    echo ""
-    echo "[ERROR] Some tests failed!"
-    exit 1
-else
-    echo ""
-    echo "[SUCCESS] All unit tests passed!"
-    exit 0
-fi
+pause

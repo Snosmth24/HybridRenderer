@@ -1,55 +1,75 @@
 #include "AssetLoader.h"
-#include <iostream>
 
+// Include stb_image (header-only library)
+// This must be in exactly ONE .cpp file
 #define STB_IMAGE_IMPLEMENTATION
 #include "../../external/stb_image.h"
 
+#include <iostream>
+
+// Texture destructor implementation
 Texture::~Texture() {
-    std::cout << "[DESTRUCTOR] Called" << std::endl;
     if (data) {
-        std::cout << "[DESTRUCTOR] Freeing data at: " << (void*)data << std::endl;
         stbi_image_free(data);
         data = nullptr;
-        std::cout << "[DESTRUCTOR] Data freed" << std::endl;
     }
-    else {
-        std::cout << "[DESTRUCTOR] data is nullptr, nothing to free" << std::endl;
-    }
-    std::cout << "[DESTRUCTOR] Done" << std::endl;
 }
 
+// AssetLoader destructor - clean up all cached textures
+AssetLoader::~AssetLoader() {
+    clearCache();
+}
+
+// Clear all cached textures
+void AssetLoader::clearCache() {
+    for (auto& pair : cache) {
+        delete pair.second;
+    }
+    cache.clear();
+}
+
+// Get number of cached textures
+size_t AssetLoader::getCacheSize() const {
+    return cache.size();
+}
+
+// Load texture from file (with caching)
 Texture* AssetLoader::loadTexture(const std::string& path) {
-    std::cout << "[LOAD] Starting loadTexture()" << std::endl;
-    std::cout << "[LOAD] Path: " << path << std::endl;
-
-    std::cout << "[LOAD] About to create Texture..." << std::endl;
+    // Check if texture is already in cache
+    auto it = cache.find(path);
+    if (it != cache.end()) {
+        // Cache hit - return cached texture
+        std::cout << "[CACHE HIT] Returning cached texture: " << path << std::endl;
+        return it->second;
+    }
+    
+    // Cache miss - load the texture
+    std::cout << "[CACHE MISS] Loading texture: " << path << std::endl;
+    
     Texture* texture = new Texture();
-    std::cout << "[LOAD] Texture created at: " << (void*)texture << std::endl;
-
-    std::cout << "[LOAD] Calling stbi_load()..." << std::endl;
+    
+    // Load image using stb_image
     texture->data = stbi_load(
         path.c_str(),
         &texture->width,
         &texture->height,
         &texture->channels,
-        0
+        0  // desired_channels (0 = keep original format)
     );
-    std::cout << "[LOAD] stbi_load() returned" << std::endl;
-    std::cout << "[LOAD] data pointer: " << (void*)texture->data << std::endl;
-
+    
+    // Check if loading failed
     if (!texture->data) {
-        std::cout << "[LOAD] Loading failed!" << std::endl;
+        // Get error message from stb_image
         const char* error = stbi_failure_reason();
-        std::cout << "[LOAD] Error: " << error << std::endl;
-
-        std::cout << "[LOAD] About to delete texture..." << std::endl;
+        
+        // Clean up and throw exception
         delete texture;
-        std::cout << "[LOAD] Texture deleted" << std::endl;
-
-        std::cout << "[LOAD] About to throw exception..." << std::endl;
         throw std::runtime_error("Failed to load texture: " + path + " (" + error + ")");
     }
-
-    std::cout << "[LOAD] Success! " << texture->width << "x" << texture->height << std::endl;
+    
+    // Add to cache
+    cache[path] = texture;
+    std::cout << "[CACHED] Texture added to cache: " << path << std::endl;
+    
     return texture;
 }
