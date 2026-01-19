@@ -27,7 +27,12 @@ jobs:
           Write-Error "GoogleTest not found"
           exit 1
         }
+        if (!(Test-Path "test_assets\test_256x256.png")) {
+          Write-Error "Test assets not found"
+          exit 1
+        }
         Write-Host "✓ Dependencies verified"
+        Write-Host "✓ Test assets verified"
       shell: pwsh
     
     - name: Configure CMake
@@ -37,6 +42,23 @@ jobs:
     - name: Build Unit Tests
       run: cmake --build build --config Debug --target HybridRenderer_unit_tests -j 4
       timeout-minutes: 10
+    
+    - name: Copy test assets to build directory
+      run: |
+        Write-Host "Copying test_assets to build directory..."
+        
+        # Copy to bin/Debug (where executable is on Windows)
+        New-Item -ItemType Directory -Force -Path "build\bin\Debug\test_assets"
+        Copy-Item -Path "test_assets\*" -Destination "build\bin\Debug\test_assets\" -Recurse -Force
+        
+        # Also copy to build root (backup location)
+        New-Item -ItemType Directory -Force -Path "build\test_assets"
+        Copy-Item -Path "test_assets\*" -Destination "build\test_assets\" -Recurse -Force
+        
+        Write-Host "✓ Test assets copied"
+        Write-Host "Contents of build\bin\Debug\test_assets:"
+        Get-ChildItem "build\bin\Debug\test_assets"
+      shell: pwsh
     
     - name: Run Tests
       run: |
@@ -76,7 +98,12 @@ jobs:
           echo "ERROR: GoogleTest not found"
           exit 1
         fi
+        if [ ! -f "test_assets/test_256x256.png" ]; then
+          echo "ERROR: Test assets not found"
+          exit 1
+        fi
         echo "✓ Dependencies verified"
+        echo "✓ Test assets verified"
     
     - name: Configure CMake
       run: cmake -B build -DCMAKE_BUILD_TYPE=Debug
@@ -86,13 +113,41 @@ jobs:
       run: cmake --build build --config Debug --target HybridRenderer_unit_tests -j 4
       timeout-minutes: 10
     
+    - name: Copy test assets to build directory
+      run: |
+        echo "Copying test_assets to build directory..."
+        
+        # Find where the executable actually is
+        EXEC_PATH=$(find build -name "HybridRenderer_unit_tests" -type f | head -n 1)
+        if [ -n "$EXEC_PATH" ]; then
+          EXEC_DIR=$(dirname "$EXEC_PATH")
+          echo "Executable found at: $EXEC_PATH"
+          echo "Copying to: $EXEC_DIR/test_assets"
+          mkdir -p "$EXEC_DIR/test_assets"
+          cp -r test_assets/* "$EXEC_DIR/test_assets/"
+        fi
+        
+        # Also copy to build root and build/bin as backup
+        mkdir -p build/test_assets
+        cp -r test_assets/* build/test_assets/
+        
+        mkdir -p build/bin/test_assets
+        cp -r test_assets/* build/bin/test_assets/
+        
+        echo "✓ Test assets copied"
+        echo "Contents of build/bin/test_assets:"
+        ls -la build/bin/test_assets/ || echo "build/bin/test_assets not accessible"
+    
     - name: List build artifacts (debug)
       run: |
-        echo "Contents of build/bin:"
-        ls -la build/bin/ || echo "build/bin does not exist"
+        echo "=== Build directory structure ==="
+        find build -type f -name "*unit_tests*"
         echo ""
-        echo "Searching for test executable:"
-        find build -name "*unit_tests*" -type f
+        echo "=== Test assets locations ==="
+        find build -type d -name "test_assets"
+        echo ""
+        echo "=== Contents of test_assets in build ==="
+        find build -path "*/test_assets/*.png" || echo "No PNG files found in build"
     
     - name: Run Tests
       run: |
@@ -129,6 +184,7 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**Details:**" >> $GITHUB_STEP_SUMMARY
         echo "- 49 unit tests (headless, no GPU)" >> $GITHUB_STEP_SUMMARY
+        echo "- 11 asset loader tests (with texture loading)" >> $GITHUB_STEP_SUMMARY
         echo "- Tested on Windows and Linux" >> $GITHUB_STEP_SUMMARY
         echo "- Build time: ~2 minutes" >> $GITHUB_STEP_SUMMARY
         echo "- Test time: <1 second" >> $GITHUB_STEP_SUMMARY
