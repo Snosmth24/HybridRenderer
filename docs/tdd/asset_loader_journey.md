@@ -76,3 +76,33 @@ This ensures helpful error messages for debugging.
 **Status:** ✅ 4 tests passing
 **Time:** 10 minutes
 **Insight:** Sometimes TDD reveals you already handled the case!
+
+## Cycle 8: Cache Performance Validation
+
+**Date:** 2025-01-18
+**Time:** [14:50]
+
+### Challenge Discovered
+Initial performance test was flaky due to OS-level file caching.
+Test would pass on first run (1000x speedup) but fail on subsequent
+runs (5x speedup).
+
+### Solution Implemented
+1. Warm up OS cache before measurements
+2. Test that cache IS faster (not HOW MUCH faster)
+3. Add informational logging for actual speedup
+4. Document expected variability
+
+### Tests Added
+- CacheReducesLoadTime: Verify cache improves performance
+- MultipleLoadsShowCacheBenefit: Test repeated loads
+- CacheSizeRemainsConstant: Verify no duplicate entries
+- DifferentPathsCreateSeparateCacheEntries: Test isolation
+
+### Insight
+Performance tests in real systems must account for multiple
+caching layers (OS, hardware). Functional correctness is more
+reliable than absolute performance metrics.
+
+**Status:** ✅ 11 tests passing
+**Time:** 45 minutes
