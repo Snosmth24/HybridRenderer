@@ -60,7 +60,7 @@ Use `std::filesystem::path` for cross-platform path handling.
 ## Cycle 4: Error Handling - Missing Files
 
 **Date:** 2025-01-16
-**Time:** [Current time]
+**Time:** [8:50]
 
 ### RED (Write Failing Test)
 Created test expecting exception when loading nonexistent file.
@@ -106,3 +106,50 @@ reliable than absolute performance metrics.
 
 **Status:** ✅ 11 tests passing
 **Time:** 45 minutes
+
+## Cycle 9: Cache Clearing Tests
+
+**Date:** 2025-01-18
+**Time:** [18:54]
+
+### Tests Added
+1. `ClearCacheDeletesAllTextures` - Verify cache is emptied
+2. `ClearCacheOnEmptyCacheIsSafe` - Edge case: clearing empty cache
+3. `MultipleClearCachesAreSafe` - Edge case: repeated clears
+4. `DestructorClearsCache` - Verify destructor cleanup
+5. `ClearCacheFreesMemory` - Verify memory is actually freed
+
+### Implementation
+`clearCache()` was already implemented in Cycle 7, so all tests
+passed immediately (GREEN without needing RED phase).
+
+This demonstrates that good initial implementation can anticipate
+future test cases.
+
+### Edge Cases Tested
+- Empty cache
+- Multiple clears
+- Destructor cleanup
+- Memory reuse/allocation
+
+**Status:** ✅ 16 tests passing
+**Time:** 20 minutes
+**Insight:** Testing edge cases (empty, multiple calls, etc.) 
+ensures robustness and prevents regression bugs.
+```
+
+---
+
+## Current Test Count
+
+**After Cycle 9:**
+```
+Total tests: 16
+
+Cycle 1: 1 test  (LoaderCanBeCreated)
+Cycle 2: 1 test  (HasLoadTextureMethod)
+Cycle 3: 1 test  (LoadsCorrectDimensions)
+Cycle 4: 1 test  (ThrowsExceptionForMissingFile)
+Cycle 7: 3 tests (Caching tests)
+Cycle 8: 4 tests (Performance tests)
+Cycle 9: 5 tests (Cache clearing tests)

@@ -195,17 +195,63 @@ AssetLoaderTest, HasLoadTextureMethod
 AssetLoaderTest, LoadsCorrectDimensions
 **Lesson:** Run tests from Console
 
+## Bug #8: CI workflow fails to read relative path
+**Severity:** Blocker  
+**Status:** ✅ Fixed
+
+**Description:**  
+Asset Tests work fine on local machine with relative paths but fail on CI servers. 
+
+**Root Cause:**  
+Github actions requier dedicated path variable to be defined in ci.yml file. 
+
+**Symptoms:**
+```
+Tests fail to build on CI server - Exits with error 8 - failure to find file.
+
+```
+
+**Fix:**
+```
+# Copy to bin/Debug (where executable is on Windows)
+        New-Item -ItemType Directory -Force -Path "build\bin\Debug\test_assets"
+        Copy-Item -Path "test_assets\*" -Destination "build\bin\Debug\test_assets\" -Recurse -Force
+```
+```
+# Find where the executable actually is
+        EXEC_PATH=$(find build -name "HybridRenderer_unit_tests" -type f | head -n 1)
+        if [ -n "$EXEC_PATH" ]; then
+          EXEC_DIR=$(dirname "$EXEC_PATH")
+          echo "Executable found at: $EXEC_PATH"
+          echo "Copying to: $EXEC_DIR/test_assets"
+          mkdir -p "$EXEC_DIR/test_assets"
+          cp -r test_assets/* "$EXEC_DIR/test_assets/"
+        fi
+```	
+**Test Added:** 
+1. `ClearCacheDeletesAllTextures` - Verify cache is emptied
+2. `ClearCacheOnEmptyCacheIsSafe` - Edge case: clearing empty cache
+3. `MultipleClearCachesAreSafe` - Edge case: repeated clears
+4. `DestructorClearsCache` - Verify destructor cleanup
+5. `ClearCacheFreesMemory` - Verify memory is actually freed
+**Lesson:** (Debug)Check file paths in yml and set path variable to implemnt relative file paths.
+
 ## Statistics
 
-- **Total bugs found:** 7
+- **Total bugs found:** 8
 - **Critical:** 1
 - **Major:** 2
 - **Medium:** 1
-- **Blockers (CI):** 2
+- **Blockers (CI):** 3
 - **Minimal (CI):** 1
-- **Caught by:** Manual testing (4), CI (3)
-- **Prevention:** Added 69 automated tests
+- **Caught by:** Manual testing (4), CI (4)
+- **Prevention:** Added 76 automated tests
 
 ## QA Takeaway
 
-Most bugs found during development is a bug that would have reached users. Automated tests prevent regression of all fixed bugs.
+-Most bugs found during development is a bug that would have reached users. Automated tests prevent regression of all fixed bugs.
+-Performance testing should be seperated from functional testing. Performance tests can be flakey due to OS level caching which 
+can cause repeated runs of tests to show better performance results. This leads to "it works on my machine" scenarios. Tests 
+should either implement statistical analysis to account for OS level caching or test on dedicated VMs or containers.
+-CI workflows do not follow relative file paths like a local machine. A dedicated file path variable must be defined in 
+a yml file for github actions to function.  

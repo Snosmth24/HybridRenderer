@@ -22,9 +22,14 @@ AssetLoader::~AssetLoader() {
 
 // Clear all cached textures
 void AssetLoader::clearCache() {
+    // Delete all cached textures
     for (auto& pair : cache) {
-        delete pair.second;
+        if (pair.second) {  // Safety check (shouldn't be null, but good practice)
+            delete pair.second;
+        }
     }
+    
+    // Clear the map
     cache.clear();
 }
 
