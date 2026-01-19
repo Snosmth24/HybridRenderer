@@ -191,118 +191,82 @@ TEST_F(AssetLoaderTest, DifferentPathsCreateSeparateCacheEntries) {
 // ==================== Cycle 9 ====================
 
 TEST_F(AssetLoaderTest, ClearCacheDeletesAllTextures) {
-    // ARRANGE
     std::string path1 = "test_assets/test_256x256.png";
     std::string path2 = "test_assets/test_512x512.png";
     
-    // Load multiple textures
-    Texture* tex1 = loader->loadTexture(path1);
-    Texture* tex2 = loader->loadTexture(path2);
-    
+    loader->loadTexture(path1);
+    loader->loadTexture(path2);
     EXPECT_EQ(loader->getCacheSize(), 2);
     
-    // ACT
     loader->clearCache();
-    
-    // ASSERT
     EXPECT_EQ(loader->getCacheSize(), 0);
     
-    // Loading again should create NEW textures (different pointers)
     Texture* tex1_new = loader->loadTexture(path1);
     Texture* tex2_new = loader->loadTexture(path2);
     
-    // These should be different pointers (new allocations)
-    EXPECT_NE(tex1, tex1_new);
-    EXPECT_NE(tex2, tex2_new);
-    
-    // Cache should have 2 entries again
+    ASSERT_NE(tex1_new, nullptr);
+    ASSERT_NE(tex2_new, nullptr);
+    EXPECT_EQ(tex1_new->width, 256);
+    EXPECT_EQ(tex2_new->width, 512);
     EXPECT_EQ(loader->getCacheSize(), 2);
 }
 
 TEST_F(AssetLoaderTest, ClearCacheOnEmptyCacheIsSafe) {
-    // ARRANGE
     EXPECT_EQ(loader->getCacheSize(), 0);
     
-    // ACT - clearing empty cache should not crash
     loader->clearCache();
     
-    // ASSERT
     EXPECT_EQ(loader->getCacheSize(), 0);
     
-    // Can still load textures after clearing empty cache
     Texture* tex = loader->loadTexture("test_assets/test_256x256.png");
     EXPECT_NE(tex, nullptr);
     EXPECT_EQ(loader->getCacheSize(), 1);
 }
 
 TEST_F(AssetLoaderTest, MultipleClearCachesAreSafe) {
-    // ARRANGE
     loader->loadTexture("test_assets/test_256x256.png");
     EXPECT_EQ(loader->getCacheSize(), 1);
     
-    // ACT - multiple clears should be safe
     loader->clearCache();
     loader->clearCache();
     loader->clearCache();
     
-    // ASSERT
     EXPECT_EQ(loader->getCacheSize(), 0);
     
-    // Can still use loader normally
     Texture* tex = loader->loadTexture("test_assets/test_256x256.png");
     EXPECT_NE(tex, nullptr);
 }
 
 TEST_F(AssetLoaderTest, DestructorClearsCache) {
-    // Test that destructor properly cleans up cache
-    
-    // Create a loader in a scope
     {
         AssetLoader* tempLoader = new AssetLoader();
         
-        // Load some textures
         tempLoader->loadTexture("test_assets/test_256x256.png");
         tempLoader->loadTexture("test_assets/test_512x512.png");
         
         EXPECT_EQ(tempLoader->getCacheSize(), 2);
         
-        // Destructor should clean up when we delete
         delete tempLoader;
-        
-        // Can't verify cache size after deletion (object destroyed)
-        // But test passes if no memory leaks or crashes
     }
     
-    // If we got here without crashing, destructor worked correctly
     SUCCEED();
 }
 
-TEST_F(AssetLoaderTest, ClearCacheFreesMemory) {
-    // This test verifies that clearCache() actually frees memory
-    // by loading a texture, clearing, and loading again to get new pointer
-    
+TEST_F(AssetLoaderTest, ClearCacheAllowsFreshLoading) {
     std::string path = "test_assets/test_256x256.png";
     
-    // First load
     Texture* tex1 = loader->loadTexture(path);
-    void* ptr1 = static_cast<void*>(tex1);
+    EXPECT_EQ(tex1->width, 256);
+    EXPECT_EQ(loader->getCacheSize(), 1);
     
-    // Clear cache (should delete tex1)
     loader->clearCache();
+    EXPECT_EQ(loader->getCacheSize(), 0);
     
-    // Second load - should allocate new Texture
     Texture* tex2 = loader->loadTexture(path);
-    void* ptr2 = static_cast<void*>(tex2);
-    
-    // Pointers should be different (new allocation)
-    // Note: In theory they COULD be the same if allocator reuses
-    // the same address, but in practice with fresh allocation,
-    // they're usually different
-    EXPECT_NE(ptr1, ptr2) 
-        << "Expected different pointers after clearCache, but got same address. "
-        << "This could happen if allocator reused memory, but is unlikely.";
-    
-    // More important: verify we can use the new texture
+    EXPECT_NE(tex2, nullptr);
     EXPECT_EQ(tex2->width, 256);
     EXPECT_EQ(tex2->height, 256);
+    EXPECT_EQ(loader->getCacheSize(), 1);
+    
+    EXPECT_NE(tex2->data, nullptr);
 }
