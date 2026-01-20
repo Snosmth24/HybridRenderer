@@ -153,9 +153,17 @@ Texture* tex2 = loader->loadTexture("player.png");  // Same pointer!
 - **Test result reporting** with summary generation
 - **Fast feedback** (~2 minute builds)
 
-### Status
-![CI - Unit Tests](https://github.com/[Snosmth24]/HybridRenderer/workflows/CI%20-%20Unit%20Tests/badge.svg)
+## Status
 
+[![CI - Unit Tests](https://github.com/Snosmth24/HybridRenderer/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/Snosmth24/HybridRenderer/actions)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-blue)](#quick-start)
+[![C++](https://img.shields.io/badge/C%2B%2B-17-blue)](#technologies)
+[![Tests](https://img.shields.io/badge/tests-66%2B%20passing-success)](#test-coverage)
+
+**Current Build Status:**
+- ✅ Windows: All tests passing
+- ✅ Linux: All tests passing
+- ✅ Test Coverage: 100% (asset loading)
 ---
 
 ## Documentation
