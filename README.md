@@ -155,7 +155,7 @@ Texture* tex2 = loader->loadTexture("player.png");  // Same pointer!
 
 ## Status
 
-[![CI - Unit Tests](https://github.com/Snosmth24/HybridRenderer/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/Snosmth24/HybridRenderer/actions)
+[![CI - Unit Tests](https://github.com/Snosmth24/HybridRenderer/actions/workflows/ci.yml/badge.svg)](https://github.com/Snosmth24/HybridRenderer/actions/workflows/ci.yml)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-blue)](#quick-start)
 [![C++](https://img.shields.io/badge/C%2B%2B-17-blue)](#technologies)
 [![Tests](https://img.shields.io/badge/tests-66%2B%20passing-success)](#test-coverage)
