@@ -48,6 +48,50 @@ GPU rendering application with comprehensive automated testing framework, built 
 - **Cross-platform CI/CD** (Windows + Linux)
 - **Test-Driven Development** methodology
 
+
+## QA Methodology & Process
+
+This project demonstrates professional QA engineering practices through comprehensive test documentation and systematic validation.
+
+### Test Artifacts
+
+#### 📋 Test Planning
+- **[Test Plan](docs/qa/test_plan.md)** - Strategy, scope, and approach
+- **[Test Cases](docs/qa/test_cases.md)** - 16 detailed test scenarios
+- **[Traceability Matrix](docs/qa/traceability_matrix.md)** - Requirements coverage mapping
+
+#### 🐛 Defect Management
+- **[Bug Reports](docs/bugs_found.md)** - Formal defect tracking with root cause analysis
+- **[Bug Template](docs/qa/bug_report_template.md)** - Standardized reporting format
+
+#### 📊 Test Results
+- **[Test Results](docs/test_results.md)** - Execution records and metrics
+- **[Performance Benchmarks](docs/performance_benchmarks.md)** - Load time and cache metrics
+
+#### 🏗️ Technical Documentation
+- **[Architecture](docs/architecture.md)** - System design and testing approach
+- **[TDD Journey](docs/tdd/asset_loader_journey.md)** - Development process documentation
+
+### Testing Approach
+
+**Test Strategy:**
+- Test-Driven Development (TDD) methodology
+- Automated testing with CI/CD validation
+- Cross-platform testing (Windows/Linux)
+- Risk-based test prioritization
+
+**Test Coverage:**
+- 92.3% requirements coverage (12/13 requirements)
+- 100% code coverage (asset loading system)
+- 87.5% automated test execution
+- Zero critical/high severity open bugs
+
+**Quality Metrics:**
+- 16 test cases documented and executed
+- 3 bugs found and fixed during development
+- 100% pass rate on both platforms
+- <2 minute CI/CD execution time
+
 ---
 
 ## Test Coverage
