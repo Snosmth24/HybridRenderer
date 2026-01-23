@@ -9,7 +9,7 @@ This document tracks all bugs discovered and fixed during development - demonstr
 ## Bug #1: Crash on Window Close
 
 **Reported By:** [Tigran Amiragov]  
-**Date Reported:** 2025-01-16  
+**Date Reported:** 2026-01-16  
 **Severity:** Critical 
 **Priority:** P0   
 **Status:**  Fixed 
@@ -36,7 +36,7 @@ Application crashed with access violation when closing the window.
 1. Run program in debug mode
 2. Close window after all initialization is complete
 3. Program should crash with exception thrown.
-4. [Observe result]
+
 
 ---
 
@@ -76,9 +76,7 @@ that allows for the application to continue performing cleanup operations after 
 GPU was still processing frames during cleanup. Called `cleanup()` before waiting for device idle.
 
 **Code Location:**
-- File: `src/path/to/file.cpp`
-- Line: 123
-- Function: `functionName()`
+
 
 ---
 
@@ -112,7 +110,7 @@ void VulkanContext::cleanup() {
 2. Program Exits smoothly w/o exception
 
 **Verified By:** [Tigran Amiragov]  
-**Verification Date:** 2025-01-16 
+**Verification Date:** 2026-01-16 
 **Status:** ✅ Verified 
 
 ---
@@ -137,7 +135,7 @@ synchronization bugs.
 **Title:** White Screen on First Frame
 
 **Reported By:** [Tigran Amiragov]  
-**Date Reported:** 2025-01-16  
+**Date Reported:** 2026-01-16  
 **Severity:**  High  
 **Priority:**  P1  
 **Status:**  Fixed   
@@ -249,7 +247,7 @@ void endFrame() {
 background.
 
 **Verified By:** [Tigran Amiragov]  
-**Verification Date:** 2025-01-16  
+**Verification Date:** 2026-01-16  
 **Status:** ✅ Verified 
 
 ---
@@ -275,7 +273,7 @@ regression test suite for physical device platforms.
 **Title:** Uninitialized Swapchain Extent
 
 **Reported By:** [Tigran Amiragov]  
-**Date Reported:** 2025-01-16 
+**Date Reported:** 2026-01-16 
 **Severity:**  High 
 **Priority:**  P1   
 **Status:**  Fixed  
@@ -380,7 +378,7 @@ VulkanContext::VulkanContext(IWindow* window)
 2. Program Should run and exit smoothly with no access reading violations.
 
 **Verified By:** [Tigran Amiragov]  
-**Verification Date:** 2025-01-16  
+**Verification Date:** 2026-01-16  
 **Status:** ✅ Verified 
 
 ---
@@ -403,7 +401,7 @@ Always initialize member variables.
 **Title:** Double Cleanup Crash
 
 **Reported By:** [Tigran Amiragov]  
-**Date Reported:** 2025-01-16  
+**Date Reported:** 2026-01-16  
 **Severity:**  Medium 
 **Priority:**  P1   
 **Status:**  Fixed  
@@ -512,7 +510,7 @@ void cleanup() {
 3. Program Should exit smoothly without crashing.
 
 **Verified By:** [Tigran Amiragov]  
-**Verification Date:** 2025-01-16 
+**Verification Date:** 2026-01-16 
 **Status:** ✅ Verified 
 
 ---
@@ -532,7 +530,7 @@ This is a common synchronization issue and is easily checked implicitly by all i
 
 ## Bug #5: CI Timeout on Submodule Fetch
 **Reported By:** [Tigran Amiragov]  
-**Date:** 2025-01-16  
+**Date:** 2026-01-16  
 **Priority:** P1  
 **Status:** ✅ Fixed & Verified  
 **Platform:** All
@@ -580,7 +578,7 @@ Include GLFW and Vulkan libraries explicitly in local repo and github.
 **Title:** Missing Namespace in Tests (Linux)
 
 **Reported By:** [Tigran Amiragov]  
-**Date Reported:** 2025-01-156 
+**Date Reported:** 2026-01-156 
 **Severity:** Critical  
 **Priority:** P0  
 **Status:**  Fixed   
@@ -701,7 +699,7 @@ all tests potentially have a regression risk if full name space qualification is
 **Title:** Uninitialized Pointer in Test Fixture
 
 **Reported By:** [Tigran Amiragov]  
-**Date Reported:** 2025-01-16  
+**Date Reported:** 2026-01-16  
 **Severity:**  High 
 **Priority:** P1 
 **Status:** Fixed  
@@ -817,7 +815,7 @@ void TearDown() override {
 2. All platform versions build and run
 
 **Verified By:** [Tigran Amiragov]  
-**Verification Date:** 2025-01-16  
+**Verification Date:** 2026-01-16  
 **Status:** ✅ Verified 
 
 ---
@@ -835,7 +833,7 @@ void TearDown() override {
 **Title:** Path Separator Escape Sequence
 
 **Reported By:** [Tigran Amiragov]  
-**Date Reported:** 2025-01-16  
+**Date Reported:** 2026-01-16  
 **Severity:**  High 
 **Priority:**  P0
 **Status:**  Fixed   
@@ -937,7 +935,7 @@ std::string path = "test_assets/test.png";
 2. tests pass
 
 **Verified By:** [Tigran Amiragov]  
-**Verification Date:** 2025-01-16  
+**Verification Date:** 2026-01-16  
 **Status:** ✅ Verified 
 
 ---
@@ -959,7 +957,7 @@ Backslash is an escape character in C++ strings. Use `/` for paths or escape bac
 
 ## Bug #9: Platform-Specific Memory Allocator Behavior
 
-**Date:** 2025-01-17  
+**Date:** 2026-01-17  
 **Severity:** Medium (Test flakiness)  
 **Component:** Test Suite  
 **Platform:** Linux-specific
