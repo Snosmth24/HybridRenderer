@@ -106,5 +106,5 @@ Tests included in regression suite (run on every commit):
 ---
 
 **Document Version:** 1.0  
-**Last Updated:** January 2025  
+**Last Updated:** January 2026  
 **Author:** [Tigran Amiragov]

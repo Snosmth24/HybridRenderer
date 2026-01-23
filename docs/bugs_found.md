@@ -632,7 +632,7 @@ Run ./build/bin/Debug/HybridRenderer_unit_tests
 Error: Process completed with exit code 127.
 ```
 
-**Test Case:** TC-009
+**Test Case:** TC-011
 
 ---
 
@@ -886,7 +886,7 @@ N/A
 
 
 
-**Test Case:** TC-001
+**Test Case:** TC-010
 
 ---
 
@@ -929,7 +929,7 @@ std::string path = "test_assets/test.png";
 
 ## Verification
 
-**Test Case:** TC-001
+**Test Case:** TC-010
 **Verification Steps:**
 1. Run TDD asset loader test suite
 2. tests pass
@@ -955,7 +955,7 @@ from windows file explorer since the '/' are reversed.
 Backslash is an escape character in C++ strings. Use `/` for paths or escape backslashes (`\\`).
 ---
 
-## Bug #9: Platform-Specific Memory Allocator Behavior
+## Bug #9: Platform-Specific Memory Allocator Behavior // Old bug report format
 
 **Date:** 2026-01-17  
 **Severity:** Medium (Test flakiness)  
