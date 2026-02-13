@@ -433,7 +433,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ![GitHub repo size](https://img.shields.io/github/repo-size/Snosmth24/HybridRenderer)
 ![GitHub code size](https://img.shields.io/github/languages/code-size/Snosmth24/HybridRenderer)
-![Lines of code](https://img.shields.io/tokei/lines/github/Snosmth24/HybridRenderer)
 ![GitHub last commit](https://img.shields.io/github/last-commit/Snosmth24/HybridRenderer)
 
 ---
