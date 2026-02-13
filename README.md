@@ -30,7 +30,7 @@ GPU rendering application with comprehensive automated testing framework, built 
 ## 🎬 Demo
 
 ### Test Execution in Action
-![Test Run Demo](docs/images/test-run.gif)
+![Test Run Demo](docs/images/test_run.gif)
 
 *Automated test suite executing 16 test cases with 100% pass rate*
 
