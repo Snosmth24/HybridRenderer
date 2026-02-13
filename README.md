@@ -1,6 +1,6 @@
 # HybridRenderer
 
-![CI - Unit Tests](https://github.com/Snosmth24/HybridRenderer/actions/workflows/unit-tests.yml/badge.svg)
+![CI - Unit Tests](https://github.com/Snosmth24/HybridRenderer/actions/workflows/ci.yml/badge.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-blue)
 ![C++](https://img.shields.io/badge/C%2B%2B-17-blue)
 ![Vulkan](https://img.shields.io/badge/Vulkan-1.3-red)
