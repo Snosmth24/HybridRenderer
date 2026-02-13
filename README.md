@@ -39,6 +39,16 @@ All tests run automatically on every push across multiple platforms:
 - ✅ Windows (MSVC)
 - ✅ Linux (GCC)
 
+### CI/CD Pipeline Status
+![CI Pipeline](docs/images/ci-pipeline.png)
+
+*Automated testing runs on every commit across Windows and Linux platforms*
+
+### Detailed Test Results
+![Test Results](docs/images/test-results.png)
+
+*All 16 test cases passing with execution times*
+
 ---
 
 ## 🎯 Project Goals
