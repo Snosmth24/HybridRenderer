@@ -149,6 +149,38 @@ Cache overhead         Negligible   <1µs for hash lookup
 [  PASSED  ] 16 tests.
 ```
 
+## CI/CD Test Results
+
+### Latest Run: April 10, 2026
+
+**Platform: Ubuntu (GitHub Actions)**
+
+✓ Unit Tests: 16/16 passed
+✓ Build System Tests: 18/18 passed
+✓ CTest Integration: Passed
+✓ Build Time: 2m 15s
+
+**Platform: Windows (GitHub Actions)**
+✓ Unit Tests: 16/16 passed
+✓ CTest Integration: Passed
+✓ Build Time: 3m 42s
+
+### Dependencies Required
+
+**Linux:**
+- CMake 3.15+
+- GCC/G++
+- X11 development libraries (libx11-dev, libxcursor-dev, libxinerama-dev, 
+  libxrandr-dev, libxi-dev)
+
+**Windows:**
+- CMake 3.15+
+- Visual Studio 2019+ with C++ tools
+
+**macOS:**
+- CMake 3.15+
+- Xcode Command Line Tools
+
 ### Bugs Found During Testing
 
 1. **Uninitialized pointer** - Test fixture crash

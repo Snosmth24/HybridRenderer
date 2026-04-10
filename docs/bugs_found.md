@@ -1006,6 +1006,84 @@ EXPECT_EQ(texture->width, 256);
 **Critical QA principle:** Test the contract (public API behavior), not the implementation (internal details). Implementation can vary across platforms while behavior remains consistent.
 
 ---
+## BUG-010: Missing X11 Dependencies in CI/CD Environment
+
+**Severity:** Medium  
+**Priority:** High  
+**Status:** Fixed  
+**Found:** 2025-01-18  
+**Environment:** GitHub Actions (Ubuntu), CI/CD Pipeline  
+**Component:** Build System, CI/CD  
+
+### Description
+Build system tests failed on GitHub Actions Ubuntu runner due to missing X11 development libraries required by GLFW.
+
+### Steps to Reproduce
+1. Push code to GitHub with GLFW dependency
+2. GitHub Actions workflow attempts to build project
+3. CMake configuration fails when GLFW tries to find X11 libraries
+
+### Error Message
+
+CMake Error at /usr/local/share/cmake-3.31/Modules/FindPackageHandleStandardArgs.cmake:233 (message):
+  Could NOT find X11 (missing: X11_X11_INCLUDE_PATH X11_X11_LIB)
+  
+### Root Cause
+GitHub Actions Ubuntu runners use minimal base images that don't include X11 development headers by default. GLFW on Linux requires these headers to compile, even for headless testing.
+
+### Impact
+- **CI/CD:** Automated tests cannot run on Linux
+- **Developers:** New contributors cannot build project on fresh Linux installations
+- **Severity:** Blocks entire CI/CD pipeline
+
+### Fix
+Added X11 dependencies to GitHub Actions workflow:
+
+```yaml
+- name: Install Dependencies
+  run: |
+    sudo apt-get update
+    sudo apt-get install -y \
+      cmake \
+      build-essential \
+      libx11-dev \
+      libxcursor-dev \
+      libxinerama-dev \
+      libxrandr-dev \
+      libxi-dev
+```
+
+### Verification Steps
+1. Push updated workflow to GitHub
+2. Verify Actions tab shows green checkmarks
+3. Confirm all jobs pass (Unit Tests + Build System Tests)
+4. Clone repo on fresh Ubuntu system and verify build works
+
+### Files Changed
+- `.github/workflows/unit-tests.yml` - Added dependency installation
+- `README.md` - Documented build prerequisites
+- `docs/bugs_found.md` - This bug report
+
+### Lessons Learned
+1. **CI/CD environments are minimal** - Don't assume packages are installed
+2. **Document dependencies** - README should list all prerequisites
+3. **Test on clean systems** - CI/CD catches missing dependencies early
+4. **GLFW on Linux needs X11** - Even for headless/offscreen rendering
+
+### Prevention Strategies
+- Document all system dependencies in README
+- Test builds on minimal Docker containers locally
+- Keep CI/CD dependency lists synchronized with docs
+- Add dependency checks to build system tests
+
+### Related Issues
+- Similar issue would occur on any fresh Ubuntu/Debian installation
+- macOS doesn't require X11 (uses Cocoa)
+- Windows doesn't require X11 (uses Win32)
+
+### Tags
+`ci-cd` `dependencies` `linux` `glfw` `build-system`
+---
 
 ## Bug Summary
 
@@ -1015,6 +1093,7 @@ EXPECT_EQ(texture->width, 256);
 | 7 | Uninitialized pointer | High | All | Fixed |
 | 8 | Path separator escaping | High | All | Fixed |
 | 9 | Allocator pointer comparison | Medium | Linux | Fixed |
+| 10| Missing Dx11 dependencies | High | CI server | Fixed |
 
 ---
 
