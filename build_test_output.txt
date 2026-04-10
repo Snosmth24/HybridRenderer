@@ -1,0 +1,75 @@
+Build System Test Suite
+Project Root: /d/VS repos/HybridRenderer
+
+
+[1;33m========================================[0m
+[1;33mTEST: CMakeLists.txt File Presence[0m
+[1;33m========================================[0m
+[0;32m✓ PASS[0m: CMakeLists.txt exists in project root
+
+[1;33m========================================[0m
+[1;33mTEST: CMake Configuration (Fresh Build)[0m
+[1;33m========================================[0m
+[0;32m✓ PASS[0m: CMake configuration succeeds
+
+[1;33m========================================[0m
+[1;33mTEST: Build Directory Structure[0m
+[1;33m========================================[0m
+[0;32m✓ PASS[0m: Build directory created
+[0;32m✓ PASS[0m: CMakeCache.txt generated
+
+[1;33m========================================[0m
+[1;33mTEST: Project Compilation[0m
+[1;33m========================================[0m
+[0;32m✓ PASS[0m: Project compiles successfully
+
+[1;33m========================================[0m
+[1;33mTEST: Test Executable Generation[0m
+[1;33m========================================[0m
+[0;32m✓ PASS[0m: Test executable generated at: /d/VS repos/HybridRenderer/build_test_temp/bin/Debug/HybridRenderer_unit_tests
+
+[1;33m========================================[0m
+[1;33mTEST: Test Assets Deployment[0m
+[1;33m========================================[0m
+  Executable location: /d/VS repos/HybridRenderer/build_test_temp/bin/Debug/HybridRenderer_unit_tests
+  Looking for test_assets in: /d/VS repos/HybridRenderer/build_test_temp/bin/Debug
+  Source test_assets found in project root ✓
+[0;32m✓ PASS[0m: Test assets deployed correctly by CMake POST_BUILD
+
+[1;33m========================================[0m
+[1;33mTEST: Test Suite Execution[0m
+[1;33m========================================[0m
+[0;32m✓ PASS[0m: All unit tests pass
+
+[1;33m========================================[0m
+[1;33mTEST: CTest Integration[0m
+[1;33m========================================[0m
+[0;32m✓ PASS[0m: CTest discovers and runs tests (some tests failed, but CTest works)
+  Note: CTest infrastructure is working. Test failures are in application tests.
+
+[1;33m========================================[0m
+[1;33mTEST: Clean Build Test[0m
+[1;33m========================================[0m
+[0;32m✓ PASS[0m: Clean build succeeds
+
+[1;33m========================================[0m
+[1;33mTEST: Build System Files Check[0m
+[1;33m========================================[0m
+[0;32m✓ PASS[0m: Required file exists: CMakeLists.txt
+[0;32m✓ PASS[0m: Required file exists: .github/workflows/ci.yml
+
+[1;33m========================================[0m
+[1;33mTEST: External Dependencies Check[0m
+[1;33m========================================[0m
+[0;32m✓ PASS[0m: External dependency exists: external/glfw
+[0;32m✓ PASS[0m: External dependency exists: external/googletest
+
+[1;33m========================================[0m
+[1;33mBUILD SYSTEM TEST SUMMARY[0m
+[1;33m========================================[0m
+Tests Run:    14
+[0;32mPassed:       14[0m
+Failed:       0
+Pass Rate:    100%
+
+[0;32mAll build system tests PASSED ✓[0m

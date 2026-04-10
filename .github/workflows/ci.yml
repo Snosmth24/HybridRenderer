@@ -188,3 +188,25 @@ jobs:
         echo "- Tested on Windows and Linux" >> $GITHUB_STEP_SUMMARY
         echo "- Build time: ~2 minutes" >> $GITHUB_STEP_SUMMARY
         echo "- Test time: <1 second" >> $GITHUB_STEP_SUMMARY
+  build-system-tests:
+    name: Build System Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential
+      
+      - name: Run Build System Tests (Shell)
+        run: |
+          chmod +x tests/build_system/test_build_system.sh
+          ./tests/build_system/test_build_system.sh
+      
+      # Or use Python version:
+      # - name: Run Build System Tests (Python)
+      #   run: |
+      #     python3 tests/build_system/test_build_system.py      
